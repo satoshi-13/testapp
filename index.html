@@ -22,20 +22,13 @@
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type="number"] { -moz-appearance: textfield; }
-
-    /* Item List inline edit */
     .item-card .display-field{display:block}
     .item-card .edit-field{display:none}
     .item-card.is-editing .display-field{display:none}
     .item-card.is-editing .edit-field{display:block}
-
-    /* Modal z-index */
     #order-preview-modal{z-index:50}
     #loading-overlay{z-index:70}
     #alert-modal,#confirm-modal{z-index:80}
-
-    /* Center modals */
-    .modal-center { display:flex; justify-content:center; align-items:center; }
   </style>
 </head>
 <body class="bg-gray-100">
@@ -113,10 +106,8 @@
         <p id="item-name-display-quantity" class="text-center text-lg font-bold mb-4 text-gray-800 h-7"></p>
         <label for="quantity-input" class="font-bold">数量を入力してください:</label>
         <input type="number" id="quantity-input" class="w-full p-4 border-2 rounded-lg text-3xl text-center mt-2" inputmode="numeric" />
-        <div class="mt-4 flex gap-3">
-          <button id="submit-stock-update" class="flex-1 bg-blue-500 text-white p-3 rounded-lg text-lg font-bold hover:bg-blue-600">登録</button>
-          <button class="back-button flex-1 bg-gray-200 text-gray-700 p-3 rounded-lg text-lg font-bold">戻る</button>
-        </div>
+        <button id="submit-stock-update" class="w-full bg-blue-500 text-white p-4 rounded-lg mt-4 text-lg font-bold hover:bg-blue-600">登録</button>
+        <button class="back-button mt-4 w-full text-center text-gray-600">戻る</button>
       </div>
 
       <!-- 新規物品登録 -->
@@ -133,10 +124,8 @@
           <input type="email" id="new-supplier-email" list="supplier-email-list" placeholder="発注先メールアドレス *" class="w-full p-3 border rounded-md" />
           <datalist id="supplier-email-list"></datalist>
         </div>
-        <div class="mt-4 flex gap-3">
-          <button id="submit-new-item" class="flex-1 bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600">登録する</button>
-          <button class="back-button flex-1 bg-gray-200 text-gray-700 p-3 rounded-lg font-bold">戻る</button>
-        </div>
+        <button id="submit-new-item" class="w-full bg-blue-500 text-white p-3 rounded-md mt-4 hover:bg-blue-600">登録する</button>
+        <button class="back-button mt-4 w-full text-center text-gray-600">戻る</button>
       </div>
 
       <!-- 発注履歴 -->
@@ -186,21 +175,22 @@
           <input type="number" id="inventory-actual-stock" class="w-full p-4 border-2 rounded-lg text-4xl text-center mt-2" inputmode="numeric" />
         </div>
 
-        <div class="mt-4 flex gap-3">
-          <button id="inventory-confirm-button" class="flex-1 bg-green-600 text-white p-3 rounded-md font-bold">確定</button>
-          <button id="inventory-back-button" class="flex-1 bg-gray-200 text-gray-700 p-3 rounded-md font-bold">戻る</button>
+        <div class="mt-4">
+          <button id="inventory-confirm-button" class="bg-green-600 text-white px-4 py-2 rounded-md font-bold">確定</button>
         </div>
+
+        <button id="inventory-back-button" class="mt-6 w-full text-center text-gray-600">戻る</button>
       </div>
     </main>
   </div>
 
   <!-- Loading -->
-  <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 modal-center hidden">
+  <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
     <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white"></div>
   </div>
 
   <!-- Alert -->
-  <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-center hidden">
+  <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
     <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-sm text-center">
       <p id="alert-message" class="mb-4 text-gray-700"></p>
       <button id="alert-ok-button" class="bg-blue-500 text-white px-8 py-2 rounded-md hover:bg-blue-600">OK</button>
@@ -208,7 +198,7 @@
   </div>
 
   <!-- Confirm -->
-  <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-center hidden">
+  <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
     <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-sm text-center">
       <p id="confirm-message" class="mb-6 text-gray-700"></p>
       <div class="flex justify-center space-x-4">
@@ -219,7 +209,7 @@
   </div>
 
   <!-- Order preview -->
-  <div id="order-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-center hidden">
+  <div id="order-preview-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
     <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-md">
       <h3 class="text-lg font-bold mb-4">発注メールの作成</h3>
 
@@ -252,9 +242,9 @@
 
   <script>
   document.addEventListener("DOMContentLoaded", () => {
-    const APP_VERSION = "2025.10.15.IMGID";
+    const APP_VERSION = "2025.10.15.1";
 
-    // （キャッシュバスター）
+    // キャッシュバスター
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("v") !== APP_VERSION) {
       const newUrl = new URL(window.location.href);
@@ -263,41 +253,10 @@
       return;
     }
 
-    // ===== Feature flags =====
-    const FEATURE = {
-      hideMainInOut: true,
-      hideAI: true,
-      inventoryAutoNext: true
-    };
-
     // ===== Config =====
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby2s9F8Hw4A_N6RW-lvJXOircDWg4mHaZnHxJWEIWlKCoUGC67HmhNGQ2hORLpejamh/exec"; // ←あなたのGASデプロイURLに差し替え
-    const USE_GAS_IMAGE_PROXY = true; // 画像をGAS経由で配信するなら true（Drive権限不要で確実）
-
-    // ===== Image URL normalizer =====
-    // シートの「画像URL」セルに「ファイルIDだけ」「/file/d/.../view」「?id=...」「直URL」のどれが来ても表示に使えるURLへ変換
-    const normalizeImageSrc = (raw) => {
-      const s = String(raw || "").trim();
-      if (!s) return "";
-      // 1) ID抽出（IDだけ /file/d/<ID>/view /?id=<ID>）
-      let id = "";
-      const idOnly = s.match(/^[A-Za-z0-9_-]{10,}$/);
-      const fromFileD = s.match(/\/d\/([A-Za-z0-9_-]{10,})/);
-      const fromQuery = s.match(/[?&]id=([A-Za-z0-9_-]{10,})/);
-      if (idOnly) id = idOnly[0];
-      else if (fromFileD) id = fromFileD[1];
-      else if (fromQuery) id = fromQuery[1];
-
-      // 2) IDが取れたら安定URLを生成
-      if (id) {
-        if (USE_GAS_IMAGE_PROXY) {
-          return `${GAS_WEB_APP_URL}?action=image&id=${encodeURIComponent(id)}`;
-        } else {
-          return `https://drive.usercontent.google.com/uc?id=${encodeURIComponent(id)}&export=view`;
-        }
-      }
-      // 3) それ以外はそのまま（S3等）
-      return s;
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxekfXVqj7KpwUJG3Xpy0pnNHoXKGz5SuYXeDHkNUvN4F6yDA0TvxmwzgnKehHAyvLD/exec"; // ←必ず差し替え
+    const FEATURE = {
+      inventoryAutoNext: true
     };
 
     // ===== State =====
@@ -306,7 +265,7 @@
       currentView: null,
       historyStack: [],
       itemList: [],
-      stockUpdate: { action: null, qrId: null, itemName: null }, // 入出庫用
+      stockUpdate: { action: null, qrId: null, itemName: null },
       otherUserInfo: { department: null, phs: null },
       orderContext: { historyId: null, unitPrice: 0 },
       inventoryCount: { items: [], currentIndex: 0, tempOrderContext: null }
@@ -326,6 +285,56 @@
         order: document.getElementById("order-preview-modal")
       }
     };
+
+    // ===== 画像 三段フォールバック（非公開対応） =====
+    function extractDriveId(input) {
+      const s = String(input || '').trim();
+      if (/^[A-Za-z0-9_-]{20,}$/.test(s) && !/^https?:/i.test(s)) return s;
+      const patterns = [
+        /\/d\/([A-Za-z0-9_-]{20,})/, /id=([A-Za-z0-9_-]{20,})/,
+        /open\?id=([A-Za-z0-9_-]{20,})/, /file\/d\/([A-Za-z0-9_-]{20,})/
+      ];
+      for (const re of patterns) { const m = s.match(re); if (m && m[1]) return m[1]; }
+      return null;
+    }
+    function setImageWithFallback(imgEl, rawValue) {
+      if (!imgEl) return;
+      const v = (rawValue || '').trim();
+      if (!v) { imgEl.classList.add('hidden'); return; }
+
+      const id = extractDriveId(v);
+      const candidates = [];
+      if (/^https?:\/\//i.test(v)) candidates.push(v);
+      if (id) candidates.push(`https://drive.usercontent.google.com/uc?id=${id}&export=view`);
+
+      let tried = 0;
+      imgEl.referrerPolicy = 'no-referrer';
+      imgEl.loading = 'lazy';
+
+      const tryNext = () => {
+        if (tried < candidates.length) {
+          const url = candidates[tried++];
+          imgEl.onerror = tryNext;
+          imgEl.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+        } else {
+          if (!id) { imgEl.classList.add('hidden'); return; }
+          fetch(`${GAS_WEB_APP_URL}?action=image64&id=${encodeURIComponent(id)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'text/plain' } // プリフライト回避
+          }).then(r => r.json()).then(j => {
+            if (j && j.status === 'success' && j.dataUrl) {
+              imgEl.onerror = () => imgEl.classList.add('hidden');
+              imgEl.src = j.dataUrl;
+              imgEl.classList.remove('hidden');
+            } else {
+              imgEl.classList.add('hidden');
+            }
+          }).catch(() => imgEl.classList.add('hidden'));
+        }
+      };
+      imgEl.onload = () => imgEl.classList.remove('hidden');
+      tryNext();
+    }
 
     // ===== View helpers =====
     const showView = (id, isBack=false) => {
@@ -383,8 +392,7 @@
         }
         const res = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
-          mode: "cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          headers: { "Content-Type": "text/plain" }, // ←プリフライト回避（CORS）
           body: JSON.stringify(req)
         });
         const json = await res.json();
@@ -483,9 +491,7 @@
         return;
       }
 
-      container.innerHTML = items.map(item => {
-        const img = item.imageUrl ? `<img src="${normalizeImageSrc(item.imageUrl)}" alt="" class="w-16 h-16 object-cover rounded ml-3">` : "";
-        return `
+      container.innerHTML = items.map(item => `
         <div class="item-card p-3 border rounded-lg shadow-sm"
              data-barcode="${item.barcode || ""}"
              data-item-name="${item.itemName || ""}"
@@ -493,9 +499,14 @@
           <div class="flex items-start justify-between">
             <div>
               <h3 class="font-bold text-base leading-tight">${item.itemName || ""}</h3>
-              <p class="text-xs text-gray-600 mt-1">用途: ${item.useFor || "—"}</p>
+              <p class="text-xs text-gray-500">用途: ${item.useFor || "—"}</p>
             </div>
-            ${img}
+            ${item.imageUrl
+              ? `<img data-img="${encodeURIComponent(item.imageUrl)}"
+                      alt=""
+                      class="w-16 h-16 object-cover rounded ml-3 hidden">`
+              : ""
+            }
           </div>
 
           <div class="display-field mt-2 text-sm space-y-2">
@@ -550,8 +561,14 @@
             <button class="save-button hidden bg-green-600 text-white px-4 py-1 rounded-md text-sm">保存</button>
             <button class="cancel-button hidden bg-gray-500 text-white px-4 py-1 rounded-md text-sm">中止</button>
           </div>
-        </div>`;
-      }).join("");
+        </div>
+      `).join("");
+
+      // 画像適用（遅延）
+      container.querySelectorAll('img[data-img]').forEach(img => {
+        const raw = decodeURIComponent(img.dataset.img || "");
+        setImageWithFallback(img, raw);
+      });
     };
     const handleItemListClick = (e) => {
       const card = e.target.closest(".item-card");
@@ -654,15 +671,18 @@
       document.getElementById("inventory-count-progress").textContent = `${currentIndex + 1} / ${items.length}`;
       document.getElementById("inventory-item-name").textContent = item.itemName || "";
       document.getElementById("inventory-expected-stock").textContent = item.stock ?? "";
-      document.getElementById("inventory-usefor").textContent = item.useFor ? item.useFor : "—";
+      const useEl = document.getElementById("inventory-usefor");
+      useEl.textContent = item.useFor ? item.useFor : "—";
+
       const imgEl = document.getElementById("inventory-image");
       if (item.imageUrl) {
-        imgEl.src = normalizeImageSrc(item.imageUrl);
         imgEl.classList.remove("hidden");
+        setImageWithFallback(imgEl, item.imageUrl);
       } else {
-        imgEl.removeAttribute("src");
         imgEl.classList.add("hidden");
+        imgEl.removeAttribute("src");
       }
+
       const input = document.getElementById("inventory-actual-stock");
       input.value = item.stock ?? 0;
       input.focus();
@@ -715,8 +735,7 @@
       if (!result) return;
 
       dom.modals.order.classList.add("hidden");
-
-      // 画面遷移
+      // 送信後の遷移（棚卸しは自動で次へ）
       if (state.currentView === "view-inventory-count" && FEATURE.inventoryAutoNext) {
         state.inventoryCount.currentIndex++;
         displayCurrentInventoryItem();
