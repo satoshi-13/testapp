@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>在庫管理アプリ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: "Inter","Noto Sans JP",sans-serif; }
+    .view { display:none; animation: fadeIn .25s ease-in-out; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+    @keyframes shake {
+      10%,90%{transform:translate3d(-1px,0,0)}
+      20%,80%{transform:translate3d(2px,0,0)}
+      30%,50%,70%{transform:translate3d(-4px,0,0)}
+      40%,60%{transform:translate3d(4px,0,0)}
+    }
+    .shake-error{animation:shake .82s cubic-bezier(.36,.07,.19,.97) both}
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+
+    /* Item List inline edit */
+    .item-card .display-field{display:block}
+    .item-card .edit-field{display:none}
+    .item-card.is-editing .display-field{display:none}
+    .item-card.is-editing .edit-field{display:block}
+
+    /* Modals z-index */
+    #order-preview-modal{z-index:60}
+    #loading-overlay{z-index:70}
+    #alert-modal,#confirm-modal{z-index:80}
+
+    /* DrumRoll */
+    .drumroll {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    .drumroll .value {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+    .drumroll .hint { font-size:12px }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
+    <header id="app-header" class="bg-blue-600 text-white p-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <button id="main-menu-button" class="flex items-center space-x-2 p-2 -ml-2 rounded-md hover:bg-blue-700 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+          <span class="text-lg font-bold">ホーム</span>
+        </button>
+      </div>
+      <div class="text-right">
+        <p id="user-name" class="text-sm"></p>
+        <button id="logout-button" class="text-xs text-blue-200 hover:underline">ログアウト</button>
+      </div>
+    </header>
+
+    <main class="p-4 md:p-6">
+      <!-- Login -->
+      <div id="view-login" class="view">
+        <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">在庫管理</h2>
+        <div class="space-y-6">
+          <div class="p-4 border rounded-lg">
+            <h3 class="font-bold mb-2">管理者 / 使用者の方</h3>
+            <p class="text-sm text-gray-600 mb-4">5桁のユーザー番号を入力してください</p>
+            <input type="number" id="login-id-input" inputmode="numeric" pattern="[0-9]*" class="w-full p-4 border-2 border-gray-300 rounded-lg text-center text-4xl tracking-[.5em] focus:border-blue-500 focus:ring-blue-500" maxlength="5" />
+          </div>
+          <div class="p-4 border rounded-lg">
+            <button id="other-staff-login-button" class="w-full bg-gray-500 text-white p-3 rounded-md hover:bg-gray-600 transition-colors">その他の方はこちら</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Home (authorized) -->
+      <div id="view-home-user" class="view">
+        <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">メインメニュー</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <button id="item-list-button" class="col-span-2 bg-indigo-500 hover:bg-indigo-600 text-white p-6 rounded-lg text-lg font-bold">物品一覧</button>
+          <button id="inventory-count-button" class="col-span-2 bg-cyan-500 hover:bg-cyan-600 text-white p-6 rounded-lg text-lg font-bold">棚卸し作業</button>
+          <button id="new-item-button" class="col-span-2 bg-blue-500 hover:bg-blue-600 text-white p-6 rounded-lg text-lg font-bold">新規物品登録</button>
+          <button id="order-history-button" class="col-span-2 bg-gray-500 hover:bg-gray-600 text-white p-6 rounded-lg text-lg font-bold">発注履歴</button>
+        </div>
+      </div>
+
+      <!-- その他ログイン: 部署選択 -->
+      <div id="view-home-other-1" class="view">
+        <h3 class="font-bold text-lg mb-4">部署/職種を選択してください</h3>
+        <div id="department-list" class="flex flex-wrap gap-3 justify-center">
+          <p class="text-gray-500">部署を読み込み中...</p>
+        </div>
+        <button class="back-button mt-6 w-full text-center text-gray-600" data-target="view-login">戻る</button>
+      </div>
+
+      <!-- その他ログイン: PHS -->
+      <div id="view-home-other-2" class="view">
+        <h3 class="font-bold text-lg mb-4">PHS番号を入力してください</h3>
+        <input type="number" id="phs-input" placeholder="PHS番号" class="w-full p-3 border rounded-md mb-4 focus:ring-2 focus:ring-blue-500" />
+        <button id="phs-submit-button" class="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600">次へ</button>
+        <button class="back-button mt-4 w-full text-center text-gray-600" data-target="view-home-other-1">戻る</button>
+      </div>
+
+      <!-- その他ログイン: メニュー -->
+      <div id="view-home-other-menu" class="view">
+        <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">メインメニュー</h2>
+        <div class="p-4 border rounded-lg bg-yellow-50 text-yellow-900">
+          このアカウントではスキャンによる入出庫は無効です。必要な場合は管理者にご相談ください。
+        </div>
+        <button class="back-button mt-6 w-full text-center text-gray-600" data-target="view-login">戻る</button>
+      </div>
+
+      <!-- 数量入力（物品一覧→入出庫） -->
+      <div id="view-quantity" class="view">
+        <h2 id="quantity-title" class="text-xl font-bold text-center mb-4"></h2>
+        <p id="final-code-display" class="text-center p-2 bg-gray-100 rounded-md mb-2 break-all"></p>
+        <p id="item-name-display-quantity" class="text-center text-lg font-bold mb-4 text-gray-800 h-7"></p>
+
+        <div class="drumroll border rounded-lg p-6 flex flex-col items-center select-none">
+          <div class="text-gray-500 mb-1 hint">スクロール / スワイプで変更</div>
+          <div id="drum-io-value" class="value">1</div>
+        </div>
+
+        <div class="mt-4 flex justify-end gap-2">
+          <button class="back-button px-4 py-2 text-gray-700 border rounded-md">戻る</button>
+          <button id="submit-stock-update" class="bg-blue-600 text-white px-5 py-2 rounded-md font-bold">登録</button>
+        </div>
+      </div>
+
+      <!-- 新規物品登録 -->
+      <div id="view-new-item" class="view">
+        <h2 class="text-xl font-bold mb-4">新規物品登録</h2>
+        <div class="space-y-3">
+          <input type="text" id="new-qr-id" placeholder="社内QRコードID (任意)" class="w-full p-3 border rounded-md" />
+          <input type="text" id="new-barcode" placeholder="製品バーコード *" class="w-full p-3 border rounded-md" />
+          <input type="text" id="new-item-name" placeholder="物品名 *" class="w-full p-3 border rounded-md" />
+          <input type="text" id="new-model" placeholder="型番/規格" class="w-full p-3 border rounded-md" />
+          <input type="number" id="new-stock" placeholder="初期在庫数 *" class="w-full p-3 border rounded-md" />
+          <input type="number" id="new-reorder-point" placeholder="発注点 *" class="w-full p-3 border rounded-md" />
+          <input type="number" id="new-price" placeholder="単価（円） *" class="w-full p-3 border rounded-md" />
+          <input type="email" id="new-supplier-email" list="supplier-email-list" placeholder="発注先メールアドレス *" class="w-full p-3 border rounded-md" />
+          <datalist id="supplier-email-list"></datalist>
+        </div>
+        <div class="mt-4 flex justify-end gap-2">
+          <button class="back-button px-4 py-2 text-gray-700 border rounded-md">戻る</button>
+          <button id="submit-new-item" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700">登録する</button>
+        </div>
+      </div>
+
+      <!-- 発注履歴 -->
+      <div id="view-order-history" class="view">
+        <h2 class="text-xl font-bold mb-4">発注履歴</h2>
+        <div id="order-history-list" class="space-y-3"></div>
+        <button class="back-button mt-4 w-full text-center text-gray-600">戻る</button>
+      </div>
+
+      <!-- 完了画面 -->
+      <div id="view-action-complete" class="view text-center py-12">
+        <svg class="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <h2 id="complete-message" class="mt-4 text-2xl font-bold text-gray-800"></h2>
+        <p id="complete-sub-message" class="text-gray-600 mt-2"></p>
+      </div>
+
+      <!-- 物品一覧 -->
+      <div id="view-item-list" class="view">
+        <h2 class="text-xl font-bold mb-4 text-center">物品一覧</h2>
+        <div class="mb-4 space-y-2">
+          <input type="text" id="item-search-input" class="w-full p-2 border rounded-md" placeholder="物品名で検索..." />
+          <div class="flex items-center space-x-4">
+            <label class="flex items-center"><input type="checkbox" id="filter-reorder-needed" class="mr-2" />要発注のみ</label>
+            <label class="flex items-center"><input type="checkbox" id="filter-on-order" class="mr-2" />発注中のみ</label>
+          </div>
+        </div>
+        <div id="item-list-container" class="space-y-3"></div>
+        <button class="back-button mt-6 w-full text-center text-gray-600">戻る</button>
+      </div>
+
+      <!-- 棚卸し -->
+      <div id="view-inventory-count" class="view">
+        <h2 class="text-xl font-bold text-center mb-2">棚卸し作業</h2>
+        <p id="inventory-count-progress" class="text-center text-sm text-gray-500 mb-4"></p>
+
+        <div class="p-4 border rounded-lg bg-gray-50">
+          <h3 id="inventory-item-name" class="text-lg font-bold text-gray-800"></h3>
+          <p class="text-sm text-gray-600">用途: <span id="inventory-usefor" class="font-medium text-gray-700"></span></p>
+          <img id="inventory-image" alt="物品画像" class="mt-2 rounded-md w-full hidden" loading="lazy" />
+          <p class="text-sm text-gray-600 mt-2">帳簿上の在庫数: <span id="inventory-expected-stock" class="font-bold text-blue-600"></span></p>
+        </div>
+
+        <div class="mt-4">
+          <div class="drumroll border rounded-lg p-6 flex flex-col items-center select-none">
+            <div class="text-gray-500 mb-1 hint">スクロール / スワイプで変更</div>
+            <div id="drum-inv-value" class="value">0</div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-end gap-2">
+          <button id="inventory-back-button" class="px-4 py-2 text-gray-700 border rounded-md">戻る</button>
+          <button id="inventory-confirm-button" class="bg-green-600 text-white px-5 py-2 rounded-md font-bold">確定</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white"></div>
+  </div>
+
+  <!-- Alert -->
+  <div id="alert-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-sm text-center">
+      <p id="alert-message" class="mb-4 text-gray-700"></p>
+      <button id="alert-ok-button" class="bg-blue-600 text-white px-8 py-2 rounded-md hover:bg-blue-700">OK</button>
+    </div>
+  </div>
+
+  <!-- Confirm (中央固定) -->
+  <div id="confirm-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-sm text-center">
+      <p id="confirm-message" class="mb-6 text-gray-700"></p>
+      <div class="flex justify-center space-x-4">
+        <button id="confirm-cancel-button" class="bg-gray-300 text-gray-800 px-8 py-2 rounded-md hover:bg-gray-400">いいえ</button>
+        <button id="confirm-ok-button" class="bg-blue-600 text-white px-8 py-2 rounded-md hover:bg-blue-700">はい</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order / Cancel preview -->
+  <div id="order-preview-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-md">
+      <h3 id="order-modal-title" class="text-lg font-bold mb-4">発注メールの作成</h3>
+
+      <div id="outstanding-order-warning" class="hidden mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-800">
+        <p class="font-bold">未納あり</p>
+        <p id="outstanding-order-message"></p>
+      </div>
+
+      <div id="supplier-display" class="text-sm text-gray-700 mb-2"></div>
+
+      <div class="space-y-3 text-sm text-gray-700">
+        <div>
+          <label for="preview-to-input" class="font-semibold">宛先（メール）:</label>
+          <input type="email" id="preview-to-input" class="w-full mt-1 p-2 border rounded-md bg-gray-50" />
+        </div>
+        <div>
+          <label for="preview-subject-input" class="font-semibold">件名:</label>
+          <input type="text" id="preview-subject-input" class="w-full mt-1 p-2 border rounded-md bg-gray-50" />
+        </div>
+        <div>
+          <label for="preview-body-input" class="font-semibold">本文（数量は本文内の「数量: n」で認識）:</label>
+          <textarea id="preview-body-input" class="w-full mt-1 p-2 border rounded-md bg-gray-50 h-48 text-sm"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 mt-6">
+        <button id="order-discard-button" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-400">閉じる</button>
+        <button id="order-send-button" class="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center w-28">送信</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const APP_VERSION = "2025.10.15.1";
+
+    // ===== Config =====
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhhrUsg-dhy1rBz_H59Dr7rxsrk2tZb5mlsuiU0SvdTlvt1hT7oHJoi46lIPYHC6VD/exec"; // ←あなたのデプロイURLに置換
+
+    // ===== State =====
+    const state = {
+      user: null,
+      currentView: null,
+      historyStack: [],
+      itemList: [],
+      stockUpdate: { action: null, qrId: null, itemName: null }, // 入出庫
+      otherUserInfo: { department: null, phs: null },
+      orderContext: { historyId: null, unitPrice: 0, mailId: null, mode: "order" }, // mode: order/cancel
+      inventoryCount: { items: [], currentIndex: 0 },
+      drum: { io: null, inv: null }
+    };
+
+    // ===== DOM cache =====
+    const dom = {
+      views: document.querySelectorAll(".view"),
+      loading: document.getElementById("loading-overlay"),
+      header: document.getElementById("app-header"),
+      mainMenuBtn: document.getElementById("main-menu-button"),
+      userName: document.getElementById("user-name"),
+      loginId: document.getElementById("login-id-input"),
+      modals: {
+        alert: document.getElementById("alert-modal"),
+        confirm: document.getElementById("confirm-modal"),
+        order: document.getElementById("order-preview-modal")
+      }
+    };
+
+    // ===== View helpers =====
+    const showView = (id, isBack=false) => {
+      dom.views.forEach(v => v.style.display="none");
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = "block";
+        if (!isBack && state.currentView) state.historyStack.push(state.currentView);
+        state.currentView = id;
+      }
+    };
+    const goBack = () => {
+      const prev = state.historyStack.pop();
+      if (prev) showView(prev, true);
+    };
+    const goHome = () => {
+      state.historyStack = [];
+      showView("view-home-user");
+    };
+    const toggleLoading = (on) => dom.loading.classList.toggle("hidden", !on);
+    const showAlert = (msg) => {
+      document.getElementById("alert-message").textContent = msg;
+      dom.modals.alert.classList.remove("hidden");
+    };
+    let confirmCb = null;
+    const showConfirm = (msg, onOk) => {
+      document.getElementById("confirm-message").textContent = msg;
+      dom.modals.confirm.classList.remove("hidden");
+      confirmCb = onOk;
+    };
+    const hideAllModals = () => {
+      dom.modals.alert.classList.add("hidden");
+      dom.modals.confirm.classList.add("hidden");
+      dom.modals.order.classList.add("hidden");
+    };
+    const showDoneAnd = (msg, sub, nextFn) => {
+      document.getElementById("complete-message").textContent = msg;
+      document.getElementById("complete-sub-message").textContent = sub || "";
+      showView("view-action-complete");
+      setTimeout(nextFn, 900);
+    };
+
+    // ===== Utilities =====
+    const callGasApi = async (action, payload={}) => {
+      toggleLoading(true);
+      try {
+        const req = { action, payload };
+        const noAuth = ["login","get_departments","get_supplier_emails","get_item_name","get_item_details"];
+        if (!noAuth.includes(action)) {
+          if (!state.user) throw new Error("認証情報がありません。再ログインしてください。");
+          req.payload.auth = { email: state.user.email };
+        }
+        const res = await fetch(GAS_WEB_APP_URL, {
+          method: "POST",
+          mode: "cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(req)
+        });
+        const json = await res.json();
+        if (json.status === "error") throw new Error(json.message || "不明なエラー");
+        return json;
+      } catch (e) {
+        showAlert(`エラー: ${e.message}`);
+        return null;
+      } finally { toggleLoading(false); }
+    };
+
+    const extractDriveId = (url) => {
+      if (!url) return null;
+      try {
+        // patterns: /file/d/{id}/, ?id=, open?id=, uc?id=
+        const m1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]{20,})/);
+        if (m1) return m1[1];
+        const u = new URL(url);
+        if (u.searchParams.get("id")) return u.searchParams.get("id");
+        const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);
+        if (m2) return m2[1];
+      } catch(e){}
+      return null;
+    };
+    const toViewLink = (url) => {
+      if (!url) return "";
+      const id = extractDriveId(url);
+      if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
+      return url;
+    };
+    const applyImgFallback = (imgEl, originalUrl) => {
+      const id = extractDriveId(originalUrl);
+      if (!id) return;
+      imgEl.onerror = () => {
+        imgEl.onerror = null;
+        imgEl.src = `${GAS_WEB_APP_URL}?action=image&id=${id}`;
+      };
+    };
+
+    const fileToBase64 = (file) => new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+
+    // DrumRoll component
+    const createDrumRoll = (valueEl, initial=1, min=1, max=999) => {
+      let val = Math.min(max, Math.max(min, Number(initial)||min));
+      const render = () => { valueEl.textContent = String(val); };
+      render();
+
+      let pulling = false, startY = 0, acc = 0;
+      const step = (d) => { 
+        val = Math.min(max, Math.max(min, val + d));
+        render();
+      };
+
+      const wheel = (e) => {
+        e.preventDefault();
+        const d = e.deltaY > 0 ? -1 : 1;
+        step(d);
+      };
+      const ts = (e) => {
+        pulling = true;
+        startY = (e.touches ? e.touches[0].clientY : e.clientY);
+        acc = 0;
+      };
+      const tm = (e) => {
+        if (!pulling) return;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY);
+        const diff = startY - y;
+        // every ~30px -> 1 step
+        const unit = 30;
+        const delta = Math.trunc((diff - acc) / unit);
+        if (delta !== 0) {
+          step(delta);
+          acc += delta * unit;
+        }
+      };
+      const te = () => { pulling = false; acc = 0; };
+
+      const parent = valueEl.parentElement;
+      parent.addEventListener("wheel", wheel, { passive:false });
+      parent.addEventListener("mousedown", ts);
+      parent.addEventListener("mousemove", tm);
+      window.addEventListener("mouseup", te);
+      parent.addEventListener("touchstart", ts, { passive:true });
+      parent.addEventListener("touchmove", tm, { passive:true });
+      parent.addEventListener("touchend", te, { passive:true });
+
+      return { get: () => val, set: (v)=>{ val = Math.min(max, Math.max(min, Number(v)||min)); render(); } };
+    };
+
+    // ===== Auth =====
+    const handleLogin = async (payload) => {
+      const result = await callGasApi("login", payload);
+      if (result && result.status === "success") {
+        state.user = result.data;
+        dom.userName.textContent = state.user.name || "";
+        const home = ["管理者","使用者"].includes(state.user.role) ? "view-home-user" : "view-home-other-1";
+        showView(home);
+        if (home === "view-home-other-1") loadDepartments();
+      } else {
+        state.user = null;
+        dom.loginId.classList.add("shake-error");
+        if (navigator.vibrate) navigator.vibrate([100,50,100]);
+        setTimeout(() => {
+          dom.loginId.classList.remove("shake-error");
+          dom.loginId.value = "";
+        }, 820);
+      }
+    };
+    const handleLogout = () => {
+      state.user = null;
+      state.historyStack = [];
+      dom.loginId.value = "";
+      loadDepartments();
+      showView("view-login");
+    };
+
+    // ===== Master loaders =====
+    const loadDepartments = async () => {
+      const listEl = document.getElementById("department-list");
+      const result = await callGasApi("get_departments");
+      if (result && result.status === "success" && result.data.length) {
+        listEl.innerHTML = "";
+        result.data.forEach(name => {
+          const btn = document.createElement("button");
+          btn.textContent = name;
+          btn.className = "bg-white border border-gray-300 px-4 py-2 rounded-full hover:bg-gray-100 shadow-sm";
+          btn.addEventListener("click", () => {
+            state.otherUserInfo.department = name;
+            showView("view-home-other-2");
+          });
+          listEl.appendChild(btn);
+        });
+      } else {
+        listEl.innerHTML = `<p class="text-red-500">${result ? "部署未登録" : "部署読込失敗"}</p>`;
+      }
+    };
+    const loadSupplierEmails = async () => {
+      const result = await callGasApi("get_supplier_emails");
+      const dl = document.getElementById("supplier-email-list");
+      dl.innerHTML = "";
+      if (result && result.status === "success") {
+        result.data.forEach(email => {
+          const opt = document.createElement("option");
+          opt.value = email;
+          dl.appendChild(opt);
+        });
+      }
+    };
+
+    // ===== Item list =====
+    const handleShowItemList = async () => {
+      const result = await callGasApi("get_item_list");
+      if (result && result.data) {
+        state.itemList = result.data;
+        renderItemList();
+        showView("view-item-list");
+      }
+    };
+    const driveImgAttrs = (url) => {
+      const id = extractDriveId(url || "");
+      const src = toViewLink(url || "");
+      const data = id ? `data-drive-id="${id}"` : "";
+      return { src, data };
+    };
+    const renderItemList = () => {
+      const container = document.getElementById("item-list-container");
+      const q = (document.getElementById("item-search-input").value || "").toLowerCase();
+      const onlyReorder = document.getElementById("filter-reorder-needed").checked;
+      const onlyOnOrder = document.getElementById("filter-on-order").checked;
+
+      let items = [...state.itemList];
+      if (q) items = items.filter(i => (i.itemName || "").toLowerCase().includes(q));
+      if (onlyReorder) items = items.filter(i => Number(i.stock) < Number(i.reorderPoint));
+      if (onlyOnOrder) items = items.filter(i => Number(i.orderedQuantity) > 0);
+
+      if (!items.length) {
+        container.innerHTML = `<p class="text-center text-gray-500">該当する物品はありません。</p>`;
+        return;
+      }
+
+      container.innerHTML = items.map(item => {
+        const img = driveImgAttrs(item.imageUrl || "");
+        return `
+        <div class="item-card p-3 border rounded-lg shadow-sm"
+             data-barcode="${item.barcode || ""}"
+             data-item-name="${item.itemName || ""}"
+             data-qr-id="${item.qrId || ""}">
+          <div class="flex items-start justify-between">
+            <div>
+              <h3 class="font-bold text-base leading-tight">${item.itemName || ""}</h3>
+              <p class="text-xs text-gray-600 mt-1">用途: ${item.useFor || "—"}</p>
+            </div>
+            ${item.imageUrl ? `<img src="${img.src}" ${img.data} alt="" class="w-16 h-16 object-cover rounded ml-3">` : ""}
+          </div>
+
+          <div class="display-field mt-2 text-sm space-y-2">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-4">
+                <div><span class="font-semibold text-gray-600">在庫:</span> <span class="font-bold text-lg">${item.stock ?? ""}</span></div>
+                <div><span class="font-semibold text-gray-600">発注点:</span> <span class="text-red-500 font-bold text-lg">${item.reorderPoint ?? ""}</span></div>
+              </div>
+              <div><span class="font-semibold text-gray-600">単価:</span> ¥${Number(item.price || 0).toLocaleString()}</div>
+            </div>
+            <div class="flex justify-between items-center text-xs text-gray-500 pt-1 border-t">
+              <div><span class="font-semibold">発注上限:</span> ${item.parLevel || "未設定"}</div>
+              <div><span class="font-semibold">発注中:</span> ${item.orderedQuantity || 0}</div>
+            </div>
+          </div>
+
+          <div class="edit-field space-y-2 text-sm">
+            <div>
+              <label class="font-semibold text-gray-600 text-xs">物品名</label>
+              <input type="text" value="${item.itemName || ""}" class="w-full p-1 border rounded-md edit-item-name">
+            </div>
+            <div class="grid grid-cols-2 gap-x-2">
+              <div>
+                <label class="font-semibold text-gray-600 text-xs">在庫数</label>
+                <input type="number" value="${item.stock ?? 0}" class="w-full p-1 border rounded-md edit-stock">
+              </div>
+              <div>
+                <label class="font-semibold text-gray-600 text-xs">発注点</label>
+                <input type="number" value="${item.reorderPoint ?? 0}" class="w-full p-1 border rounded-md edit-reorder-point">
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-x-2">
+              <div>
+                <label class="font-semibold text-gray-600 text-xs">単価(円)</label>
+                <input type="number" value="${item.price ?? 0}" class="w-full p-1 border rounded-md edit-price">
+              </div>
+              <div>
+                <label class="font-semibold text-gray-600 text-xs">発注上限</label>
+                <input type="number" value="${item.parLevel ?? ""}" class="w-full p-1 border rounded-md edit-par-level">
+              </div>
+              <div>
+                <label class="font-semibold text-gray-600 text-xs">発注中</label>
+                <input type="number" value="${item.orderedQuantity ?? 0}" class="w-full p-1 border rounded-md edit-ordered-quantity">
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 flex justify-end flex-wrap gap-2">
+            <button class="photo-button bg-purple-500 text-white px-3 py-1 rounded-md text-sm">写真</button>
+            <button class="inflow-button bg-green-500 text-white px-3 py-1 rounded-md text-sm">入庫</button>
+            <button class="outflow-button bg-yellow-500 text-white px-3 py-1 rounded-md text-sm">出庫</button>
+            <button class="edit-button bg-blue-500 text-white px-3 py-1 rounded-md text-sm">変更</button>
+            <button class="save-button hidden bg-green-600 text-white px-3 py-1 rounded-md text-sm">保存</button>
+            <button class="cancel-button hidden bg-gray-500 text-white px-3 py-1 rounded-md text-sm">中止</button>
+          </div>
+        </div>`;
+      }).join("");
+
+      // 画像のonerrorフォールバック
+      container.querySelectorAll("img[data-drive-id]").forEach(img => applyImgFallback(img, img.src));
+    };
+
+    const handleItemListClick = (e) => {
+      const card = e.target.closest(".item-card");
+      if (!card) return;
+
+      if (e.target.classList.contains("inflow-button") || e.target.classList.contains("outflow-button")) {
+        const action = e.target.classList.contains("inflow-button") ? "入庫" : "出庫";
+        const code = card.dataset.qrId || card.dataset.barcode;
+        state.stockUpdate = { action, qrId: code, itemName: card.dataset.itemName || "" };
+        document.getElementById("final-code-display").textContent = code || "";
+        document.getElementById("item-name-display-quantity").textContent = state.stockUpdate.itemName || "";
+        document.getElementById("quantity-title").textContent = action;
+
+        // DrumRoll 初期化
+        const el = document.getElementById("drum-io-value");
+        state.drum.io = createDrumRoll(el, 1, 1, 999);
+        showView("view-quantity");
+      } else if (e.target.classList.contains("edit-button")) {
+        card.classList.add("is-editing");
+        e.target.classList.add("hidden");
+        card.querySelector(".save-button").classList.remove("hidden");
+        card.querySelector(".cancel-button").classList.remove("hidden");
+      } else if (e.target.classList.contains("cancel-button")) {
+        card.classList.remove("is-editing");
+        card.querySelector(".save-button").classList.add("hidden");
+        card.querySelector(".edit-button").classList.remove("hidden");
+        renderItemList();
+      } else if (e.target.classList.contains("save-button")) {
+        const payload = {
+          barcode: card.dataset.barcode,
+          itemName: card.querySelector(".edit-item-name").value,
+          stock: card.querySelector(".edit-stock").value,
+          reorderPoint: card.querySelector(".edit-reorder-point").value,
+          price: card.querySelector(".edit-price").value,
+          parLevel: card.querySelector(".edit-par-level").value,
+          orderedQuantity: card.querySelector(".edit-ordered-quantity").value
+        };
+        callGasApi("update_item", payload).then(r => {
+          if (r && r.status === "success") {
+            showAlert("更新しました。");
+            handleShowItemList();
+          }
+        });
+      } else if (e.target.classList.contains("photo-button")) {
+        // 画像アップロード
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.capture = "environment";
+        input.onchange = async () => {
+          const f = input.files && input.files[0];
+          if (!f) return;
+          const base64 = await fileToBase64(f);
+          const barcode = card.dataset.barcode;
+          const qrId = card.dataset.qrId;
+          const payload = { barcode, qrId, base64, mime: f.type };
+          const res = await callGasApi("upload_item_image", payload);
+          if (res && res.status === "success") {
+            showAlert("画像を登録しました。");
+            // itemListの該当アイテムを更新 → 再描画
+            const idx = state.itemList.findIndex(it => (it.barcode||"")===barcode || (it.qrId||"")===qrId);
+            if (idx >= 0) state.itemList[idx].imageUrl = res.data.imageUrl;
+            renderItemList();
+          }
+        };
+        input.click();
+      }
+    };
+
+    // ===== Stock update (in/out) =====
+    const parseQuantityFromBody = (text) => {
+      const m = String(text || "").match(/数量[：:\s]*([0-9]+)/);
+      return m ? parseInt(m[1],10) : null;
+    };
+    const handleStockUpdate = async () => {
+      const qty = state.drum.io ? state.drum.io.get() : 0;
+      if (!qty || qty <= 0) { showAlert("正しい数量を入力してください。"); return; }
+      const payload = {
+        qrId: state.stockUpdate.qrId,
+        type: state.stockUpdate.action,
+        quantity: qty,
+        department: state.otherUserInfo.department,
+        phs: state.otherUserInfo.phs
+      };
+      const result = await callGasApi("stock_update", payload);
+      if (!result) return;
+
+      if (result.status === "success") {
+        if (result.orderRequired) {
+          // 発注モーダル
+          state.orderContext.historyId = result.historyId;
+          state.orderContext.mode = "order";
+          const { to, subject, body, price, supplierDisplay, outstanding } = result.mailPreview;
+
+          document.getElementById("order-modal-title").textContent = "発注メールの作成";
+          document.getElementById("preview-to-input").value = to || "";
+          document.getElementById("preview-subject-input").value = subject || "";
+          document.getElementById("preview-body-input").value = body || "";
+          document.getElementById("supplier-display").textContent = supplierDisplay || "";
+
+          const warn = document.getElementById("outstanding-order-warning");
+          if (outstanding && Number(outstanding) > 0) {
+            document.getElementById("outstanding-order-message").textContent = `現在 ${outstanding} 個、発注済み（未納）です。`;
+            warn.classList.remove("hidden");
+          } else {
+            warn.classList.add("hidden");
+          }
+          dom.modals.order.classList.remove("hidden");
+        } else {
+          showDoneAnd("在庫を更新しました。","", () => showView("view-item-list"));
+        }
+      }
+    };
+
+    // ===== Inventory count =====
+    const startInventoryCount = async () => {
+      const result = await callGasApi("get_item_list");
+      if (result && result.data) {
+        state.inventoryCount.items = result.data;
+        state.inventoryCount.currentIndex = 0;
+        displayCurrentInventoryItem();
+        // DrumRoll init
+        state.drum.inv = createDrumRoll(document.getElementById("drum-inv-value"), 0, 0, 9999);
+        showView("view-inventory-count");
+      }
+    };
+    const displayCurrentInventoryItem = () => {
+      const { items, currentIndex } = state.inventoryCount;
+      if (currentIndex >= items.length) {
+        showDoneAnd("棚卸し完了","全ての物品の確認が終わりました。", goHome);
+        return;
+      }
+      const item = items[currentIndex];
+      document.getElementById("inventory-count-progress").textContent = `${currentIndex + 1} / ${items.length}`;
+      document.getElementById("inventory-item-name").textContent = item.itemName || "";
+      document.getElementById("inventory-expected-stock").textContent = item.stock ?? "";
+      document.getElementById("inventory-usefor").textContent = item.useFor ? item.useFor : "—";
+
+      const imgEl = document.getElementById("inventory-image");
+      if (item.imageUrl) {
+        const src = toViewLink(item.imageUrl);
+        imgEl.src = src;
+        applyImgFallback(imgEl, src);
+        imgEl.classList.remove("hidden");
+      } else {
+        imgEl.removeAttribute("src");
+        imgEl.classList.add("hidden");
+      }
+      if (state.drum.inv) state.drum.inv.set(item.stock ?? 0);
+    };
+    const handleInventoryConfirm = async () => {
+      const { items, currentIndex } = state.inventoryCount;
+      if (currentIndex >= items.length) return;
+      const item = items[currentIndex];
+      const actual = state.drum.inv ? state.drum.inv.get() : 0;
+      if (Number.isNaN(actual) || actual < 0) { showAlert("有効な在庫数を入力してください。"); return; }
+
+      const payload = { qrId: item.barcode || item.qrId, type: "棚卸修正", quantity: actual, isCorrection: true };
+      const result = await callGasApi("stock_update", payload);
+      if (!result) return;
+
+      if (result.status === "success") {
+        if (result.orderRequired) {
+          state.orderContext.historyId = result.historyId;
+          state.orderContext.mode = "order";
+          const { to, subject, body, supplierDisplay, outstanding } = result.mailPreview;
+
+          document.getElementById("order-modal-title").textContent = "発注メールの作成";
+          document.getElementById("preview-to-input").value = to || "";
+          document.getElementById("preview-subject-input").value = subject || "";
+          document.getElementById("preview-body-input").value = body || "";
+          document.getElementById("supplier-display").textContent = supplierDisplay || "";
+
+          const warn = document.getElementById("outstanding-order-warning");
+          if (outstanding && Number(outstanding) > 0) {
+            document.getElementById("outstanding-order-message").textContent = `現在 ${outstanding} 個、発注済み（未納）です。`;
+            warn.classList.remove("hidden");
+          } else { warn.classList.add("hidden"); }
+          dom.modals.order.classList.remove("hidden");
+        } else {
+          state.inventoryCount.currentIndex++;
+          displayCurrentInventoryItem();
+        }
+      }
+    };
+
+    // ===== Orders send / cancel =====
+    const handleOrderSend = async () => {
+      const to = document.getElementById("preview-to-input").value.trim();
+      const subject = document.getElementById("preview-subject-input").value.trim();
+      const body = document.getElementById("preview-body-input").value.trim();
+      if (!to || !subject || !body) { showAlert("宛先・件名・本文は必須です。"); return; }
+
+      if (state.orderContext.mode === "order") {
+        const qFromBody = parseQuantityFromBody(body);
+        if (!qFromBody || qFromBody <= 0) { showAlert("本文の『数量』を正しい数値にしてください。"); return; }
+        const payload = { to, subject, body, historyId: state.orderContext.historyId, quantity: qFromBody };
+        const result = await callGasApi("send_order", payload);
+        if (!result) return;
+
+        // 送信直後にキャンセルメール画面を開く
+        if (result.cancelPreview) {
+          document.getElementById("order-modal-title").textContent = "キャンセルメールの作成";
+          document.getElementById("preview-to-input").value = result.cancelPreview.to || "";
+          document.getElementById("preview-subject-input").value = result.cancelPreview.subject || "";
+          document.getElementById("preview-body-input").value = result.cancelPreview.body || "";
+          document.getElementById("supplier-display").textContent = "";
+
+          // mode 切替
+          state.orderContext.mode = "cancel";
+          dom.modals.order.classList.remove("hidden");
+        } else {
+          dom.modals.order.classList.add("hidden");
+        }
+
+        // 棚卸し中なら自動で次へは、キャンセル送信後に進める（ここでは保留）
+        showAlert("発注メールを送信しました。続けてキャンセル作成が可能です。");
+
+      } else {
+        // cancel
+        const payload = { mailId: state.orderContext.mailId, historyId: state.orderContext.historyId };
+        // mailId は履歴から来るときに保持、直後キャンセルは null でもバックエンド側はログに null 入るだけでOK
+        const result = await callGasApi("cancel_order", payload);
+        if (!result) return;
+        dom.modals.order.classList.add("hidden");
+
+        // 棚卸し中なら次へ
+        if (state.currentView === "view-inventory-count") {
+          state.inventoryCount.currentIndex++;
+          displayCurrentInventoryItem();
+        } else if (state.currentView === "view-item-list") {
+          handleShowItemList();
+        } else {
+          goHome();
+        }
+      }
+    };
+
+    // ===== Order history =====
+    const handleGetOrderHistory = async () => {
+      const result = await callGasApi("get_order_history", {});
+      if (!result || !result.data) return;
+      const list = document.getElementById("order-history-list");
+      if (!result.data.length) {
+        list.innerHTML = `<p class="text-center text-gray-500">履歴はありません。</p>`;
+      } else {
+        list.innerHTML = result.data.map(r => `
+          <div class="border rounded-md p-3">
+            <div class="flex justify-between items-center">
+              <div>
+                <p class="font-semibold">${r.itemName || "不明な物品"}</p>
+                <p class="text-xs text-gray-500">${r.orderDate} / 数量: ${r.quantity} / ステータス: ${r.status}</p>
+              </div>
+              ${r.status === "注文済み" ? `<button class="cancel-order-button bg-blue-600 text-white px-3 py-1 rounded text-sm" data-mail-id="${r.mailId || ""}" data-history-id="${r.historyId}">キャンセル</button>` : ``}
+            </div>
+          </div>
+        `).join("");
+      }
+      showView("view-order-history");
+    };
+
+    const handleCancelOrderFromHistory = async (mailId, historyId) => {
+      // 直接送らず、まずプレビュー表示
+      const res = await callGasApi("cancel_preview", { historyId });
+      if (!res || res.status !== "success") return;
+      state.orderContext.mode = "cancel";
+      state.orderContext.historyId = historyId;
+      state.orderContext.mailId = mailId || null;
+
+      document.getElementById("order-modal-title").textContent = "キャンセルメールの作成";
+      document.getElementById("preview-to-input").value = res.data.to || "";
+      document.getElementById("preview-subject-input").value = res.data.subject || "";
+      document.getElementById("preview-body-input").value = res.data.body || "";
+      document.getElementById("supplier-display").textContent = "";
+      document.getElementById("outstanding-order-warning").classList.add("hidden");
+
+      dom.modals.order.classList.remove("hidden");
+    };
+
+    // ===== New item =====
+    const handleNewItemRegistration = async () => {
+      const payload = {
+        qrId: document.getElementById("new-qr-id").value.trim(),
+        barcode: document.getElementById("new-barcode").value.trim(),
+        itemName: document.getElementById("new-item-name").value.trim(),
+        model: document.getElementById("new-model").value.trim(),
+        stock: Number(document.getElementById("new-stock").value),
+        reorderPoint: Number(document.getElementById("new-reorder-point").value),
+        price: Number(document.getElementById("new-price").value),
+        supplierEmail: document.getElementById("new-supplier-email").value.trim()
+      };
+      if (!payload.barcode || !payload.itemName || !payload.stock || !payload.reorderPoint || !payload.price || !payload.supplierEmail) {
+        showAlert("必須項目（*）を入力してください。");
+        return;
+      }
+      const result = await callGasApi("item_register", payload);
+      if (result && result.status === "success") {
+        showAlert("登録しました。");
+        document.querySelectorAll("#view-new-item input").forEach(i => i.value = "");
+      }
+    };
+
+    // ===== Listeners =====
+    const setupListeners = () => {
+      // Login
+      dom.loginId.addEventListener("input", () => {
+        if (dom.loginId.value.length === 5) handleLogin({ loginId: dom.loginId.value });
+      });
+      document.getElementById("other-staff-login-button").addEventListener("click", () => {
+        state.user = { role: "その他", name: "その他" };
+        dom.userName.textContent = "その他";
+        showView("view-home-other-1");
+        loadDepartments();
+      });
+      document.getElementById("phs-submit-button").addEventListener("click", () => {
+        const phs = document.getElementById("phs-input").value;
+        if (phs && phs.trim() !== "") {
+          state.otherUserInfo.phs = phs.trim();
+          showView("view-home-other-menu");
+        } else {
+          showAlert("PHS番号を入力してください。");
+        }
+      });
+
+      // Header
+      dom.mainMenuBtn.addEventListener("click", goHome);
+      document.getElementById("logout-button").addEventListener("click", handleLogout);
+
+      // Home menu
+      document.getElementById("item-list-button").addEventListener("click", handleShowItemList);
+      document.getElementById("inventory-count-button").addEventListener("click", startInventoryCount);
+      document.getElementById("new-item-button").addEventListener("click", () => { loadSupplierEmails(); showView("view-new-item"); });
+      document.getElementById("order-history-button").addEventListener("click", handleGetOrderHistory);
+
+      // Common back buttons
+      document.querySelectorAll(".back-button").forEach(b => b.addEventListener("click", e => {
+        const target = e.currentTarget.dataset.target;
+        target ? showView(target) : goBack();
+      }));
+
+      document.getElementById("alert-ok-button").addEventListener("click", hideAllModals);
+      document.getElementById("confirm-ok-button").addEventListener("click", () => { dom.modals.confirm.classList.add("hidden"); if (confirmCb) confirmCb(); confirmCb = null; });
+      document.getElementById("confirm-cancel-button").addEventListener("click", () => { dom.modals.confirm.classList.add("hidden"); confirmCb = null; });
+
+      // Quantity In/Out
+      document.getElementById("submit-stock-update").addEventListener("click", handleStockUpdate);
+
+      // Item list
+      document.getElementById("item-list-container").addEventListener("click", handleItemListClick);
+      document.getElementById("item-search-input").addEventListener("input", renderItemList);
+      document.getElementById("filter-reorder-needed").addEventListener("change", renderItemList);
+      document.getElementById("filter-on-order").addEventListener("change", renderItemList);
+
+      // Inventory
+      document.getElementById("inventory-confirm-button").addEventListener("click", handleInventoryConfirm);
+      document.getElementById("inventory-back-button").addEventListener("click", goBack);
+
+      // Orders
+      document.getElementById("order-send-button").addEventListener("click", handleOrderSend);
+      document.getElementById("order-discard-button").addEventListener("click", () => {
+        dom.modals.order.classList.add("hidden");
+      });
+
+      // History cancel
+      document.getElementById("order-history-list").addEventListener("click", (e) => {
+        const btn = e.target.closest(".cancel-order-button");
+        if (!btn) return;
+        handleCancelOrderFromHistory(btn.dataset.mailId, btn.dataset.historyId);
+      });
+
+      // New item
+      document.getElementById("submit-new-item").addEventListener("click", handleNewItemRegistration);
+    };
+
+    // ===== init =====
+    const init = () => {
+      setupListeners();
+      showView("view-login");
+    };
+    init();
+  });
+  </script>
+</body>
+</html>
