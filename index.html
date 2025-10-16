@@ -37,7 +37,9 @@
     /* 棚卸し1画面化 */
     .inventory-fit{ display:flex; flex-direction:column; gap:.5rem }
     .inventory-grid{ display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:start }
-    .square-btn{ width:2.5rem; height:2.5rem } /* 40px角：±と確定を同サイズに */
+
+    /* 旧：±ボタンのサイズ（今回は未使用だが残置しても影響なし） */
+    .square-btn{ width:2.5rem; height:2.5rem }
     .roller-input{ font-size:2rem; line-height:1; padding:.5rem .75rem }
   </style>
 </head>
@@ -175,25 +177,29 @@
             <img id="inventory-image" alt="物品画像" class="blur-up" loading="lazy" fetchpriority="high" />
           </div>
 
-          <!-- 2カラム：左に名称/用途/戻る、右に±と入力/確定 -->
+          <!-- 2カラム：左に名称/用途、右に入力欄＋（その下に）戻る/確定 -->
           <div class="inventory-grid">
             <div>
               <h3 id="inventory-item-name" class="text-base font-bold text-gray-800"></h3>
               <p class="text-xs text-gray-600 mb-1">用途: <span id="inventory-usefor" class="font-medium text-gray-700"></span></p>
-              <button id="inventory-back-button" class="mt-1 px-4 py-2 rounded-md border text-gray-700">戻る</button>
             </div>
 
-            <div class="justify-self-end">
-              <div class="flex items-center space-x-2">
-                <button id="roll-dec" class="square-btn rounded bg-gray-200 flex items-center justify-center">−</button>
-                <input type="number" id="inventory-actual-stock" class="roller-input w-20 border-2 rounded-lg text-center" inputmode="numeric" />
-                <button id="roll-inc" class="square-btn rounded bg-gray-200 flex items-center justify-center">＋</button>
+            <div class="justify-self-end w-full">
+              <input
+                type="number"
+                id="inventory-actual-stock"
+                inputmode="numeric"
+                min="0"
+                class="roller-input w-full border-2 rounded-lg text-center"
+              />
+              <div class="mt-2 flex gap-2">
+                <button id="inventory-back-button" class="flex-1 px-4 py-3 rounded-md border text-gray-700">戻る</button>
+                <button id="inventory-confirm-button" class="flex-1 bg-green-600 text-white rounded-md font-bold px-4 py-3">確定</button>
               </div>
-              <button id="inventory-confirm-button" class="mt-1 square-btn bg-green-600 text-white rounded-md font-bold flex items-center justify-center">確定</button>
             </div>
           </div>
 
-          <!-- 帳簿上の在庫（省スペースのため非表示にしておく） -->
+          <!-- 帳簿上の在庫（省スペースのため非表示のまま） -->
           <p id="inventory-expected-line" class="hidden text-sm text-gray-600 mt-1">
             帳簿上の在庫数: <span id="inventory-expected-stock" class="font-bold text-blue-600"></span>
           </p>
@@ -271,7 +277,7 @@
     }
 
     // ===== Config =====
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbztGe90jh9pAdT3zPtBF9TeoApUp86005OowuHD9EBA2Xxv9M-79dAVTqGtruSvK9sN/exec"; // ←差し替え
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCReMWBqF-SjlSVV-G2rtCqT6Ga2K1LBwZRYN1u7d9cBqDAVbJmAzRQOV1gY5UFoy2/exec"; // ←差し替え
 
     // ===== State =====
     const state = {
@@ -660,15 +666,26 @@
       input.click();
     }
 
-    // Drumroll
+    // Drumroll（±ボタン撤去版：ホイール＆スワイプのみ）
     function setupDrumroll(input){
+      if(!input) return;
       const clamp=v=>Math.max(0, v|0);
-      input.addEventListener("wheel",e=>{ e.preventDefault(); input.value=clamp((parseInt(input.value)||0)+(e.deltaY<0?1:-1)); }, {passive:false});
+
+      input.addEventListener("wheel",e=>{
+        e.preventDefault();
+        input.value = clamp((parseInt(input.value)||0)+(e.deltaY<0?1:-1));
+      }, {passive:false});
+
       let lastY=null;
       input.addEventListener("touchstart",e=>{ lastY=e.touches[0].clientY; }, {passive:true});
-      input.addEventListener("touchmove",e=>{ const y=e.touches[0].clientY; const dy=y-lastY; if(Math.abs(dy)>=18){ input.value=clamp((parseInt(input.value)||0)+(dy<0?1:-1)); lastY=y; } e.preventDefault(); }, {passive:false});
-      document.getElementById("roll-inc").addEventListener("click",()=>input.value=clamp((parseInt(input.value)||0)+1));
-      document.getElementById("roll-dec").addEventListener("click",()=>input.value=clamp((parseInt(input.value)||0)-1));
+      input.addEventListener("touchmove",e=>{
+        const y=e.touches[0].clientY; const dy=y-lastY;
+        if(Math.abs(dy)>=18){
+          input.value = clamp((parseInt(input.value)||0)+(dy<0?1:-1));
+          lastY=y;
+        }
+        e.preventDefault();
+      }, {passive:false});
     }
 
     // listeners
