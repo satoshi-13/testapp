@@ -19,9 +19,6 @@
       40%,60%{transform:translate3d(4px,0,0)}
     }
     .shake-error{animation:shake .82s cubic-bezier(.36,.07,.19,.97) both}
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0 }
-    input[type="number"]{ -moz-appearance:textfield }
 
     /* 画像（正方形） */
     .square-img{ width:100%; max-width:480px; aspect-ratio:1/1; overflow:hidden; border-radius:.75rem; background:#f3f4f6; margin:0 auto }
@@ -34,13 +31,8 @@
     #loading-overlay{z-index:70}
     #alert-modal,#confirm-modal{z-index:80}
 
-    /* 棚卸し1画面化（±ボタンは撤去） */
+    /* 棚卸し：1画面化（±ボタン廃止） */
     .inventory-fit{ display:flex; flex-direction:column; gap:.75rem }
-    .inventory-grid{ display:grid; grid-template-columns:1fr; gap:.75rem; align-items:start }
-    .roller-input{ font-size:2rem; line-height:1; padding:.5rem .75rem }
-
-    /* 同サイズ並列ボタン */
-    .btn-row-2 > button { width: 50%; }
   </style>
 </head>
 <body class="bg-gray-100">
@@ -115,9 +107,9 @@
         <p id="item-name-display-quantity" class="text-center text-lg font-bold mb-4 text-gray-800 h-7"></p>
         <label for="quantity-input" class="font-bold">数量を入力してください:</label>
         <input type="number" id="quantity-input" class="w-full p-4 border-2 rounded-lg text-3xl text-center mt-2" inputmode="numeric" />
-        <div class="mt-4 flex gap-3">
-          <button class="flex-1 bg-gray-200 text-gray-800 p-4 rounded-lg font-semibold back-button">戻る</button>
-          <button id="submit-stock-update" class="flex-1 bg-blue-500 text-white p-4 rounded-lg font-semibold hover:bg-blue-600">登録</button>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <button class="back-button w-full text-center border rounded-md py-3 text-gray-700">戻る</button>
+          <button id="submit-stock-update" class="w-full bg-blue-600 text-white py-3 rounded-md text-lg font-bold hover:bg-blue-700">登録</button>
         </div>
       </div>
 
@@ -135,17 +127,15 @@
           <input type="email" id="new-supplier-email" list="supplier-email-list" placeholder="発注先メールアドレス *" class="w-full p-3 border rounded-md" />
           <datalist id="supplier-email-list"></datalist>
 
-          <!-- 写真追加 -->
-          <div class="mt-2">
-            <label class="block font-semibold mb-1">写真（任意）</label>
-            <div class="flex items-center gap-3">
-              <button id="new-photo-pick" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">写真を選択/撮影</button>
-              <input id="new-photo-input" type="file" accept="image/*" capture="environment" class="hidden" />
-              <span id="new-photo-name" class="text-sm text-gray-600">未選択</span>
+          <!-- 写真 -->
+          <div class="mt-3 p-3 border rounded-md">
+            <div class="flex items-center justify-between">
+              <p class="font-semibold">写真（任意・登録後にDriveへ保存）</p>
+              <button id="new-item-photo-button" class="bg-purple-600 text-white px-3 py-1 rounded-md text-sm">写真を選択</button>
+              <input type="file" id="new-item-photo-input" accept="image/*" capture="environment" class="hidden" />
             </div>
-            <div class="square-img mt-2">
-              <img id="new-photo-preview" alt="プレビュー" class="blur-up" />
-            </div>
+            <div class="mt-2 square-img"><img id="new-item-photo-preview" alt="プレビュー" class="blur-up" /></div>
+            <p class="text-xs text-gray-500 mt-1">※ 先に「登録する」を押したあと自動でアップロードします。</p>
           </div>
         </div>
         <button id="submit-new-item" class="w-full bg-blue-500 text-white p-3 rounded-md mt-4 hover:bg-blue-600">登録する</button>
@@ -192,20 +182,16 @@
             <img id="inventory-image" alt="物品画像" class="blur-up" loading="lazy" fetchpriority="high" />
           </div>
 
-          <div class="inventory-grid">
-            <div>
-              <h3 id="inventory-item-name" class="text-base font-bold text-gray-800"></h3>
-              <p class="text-xs text-gray-600">用途: <span id="inventory-usefor" class="font-medium text-gray-700"></span></p>
-            </div>
+          <div>
+            <h3 id="inventory-item-name" class="text-base font-bold text-gray-800"></h3>
+            <p class="text-xs text-gray-600 mb-1">用途: <span id="inventory-usefor" class="font-medium text-gray-700"></span></p>
+          </div>
 
-            <div>
-              <label for="inventory-actual-stock" class="block font-semibold mb-1">実在庫数</label>
-              <input type="number" id="inventory-actual-stock" class="roller-input w-full border-2 rounded-lg text-center" inputmode="numeric" />
-              <div class="mt-3 flex gap-3 btn-row-2">
-                <button id="inventory-back-button" class="bg-gray-200 text-gray-800 p-3 rounded-lg font-semibold">戻る</button>
-                <button id="inventory-confirm-button" class="bg-green-600 text-white p-3 rounded-lg font-semibold">確定</button>
-              </div>
-            </div>
+          <input type="number" id="inventory-actual-stock" class="w-full p-4 border-2 rounded-lg text-3xl text-center" inputmode="numeric" />
+
+          <div class="grid grid-cols-2 gap-2">
+            <button id="inventory-back-button" class="w-full border text-gray-700 py-3 rounded-md">戻る</button>
+            <button id="inventory-confirm-button" class="w-full bg-green-600 text-white py-3 rounded-md font-bold">確定</button>
           </div>
 
           <p id="inventory-expected-line" class="hidden text-sm text-gray-600 mt-1">
@@ -245,13 +231,13 @@
     <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-md">
       <h3 class="text-lg font-bold mb-4">発注メールの作成</h3>
 
-      <!-- 未納（発注中）アラートを「宛先」の直上に配置 -->
-      <div id="outstanding-order-warning" class="hidden mb-3 p-3 bg-red-100 border-l-4 border-red-500 text-red-800">
-        <p class="font-bold">注意：未納品あり</p>
-        <p id="outstanding-order-message"></p>
-      </div>
-
       <div class="space-y-3 text-sm text-gray-700">
+        <!-- 直上に未納アラート -->
+        <div id="outstanding-order-warning" class="hidden p-3 bg-red-100 border-l-4 border-red-500 text-red-800">
+          <p class="font-bold">注意：未納品あり</p>
+          <p id="outstanding-order-message"></p>
+        </div>
+
         <div>
           <label for="preview-to-input" class="font-semibold">宛先:</label>
           <input type="email" id="preview-to-input" class="w-full mt-1 p-2 border rounded-md bg-gray-50" />
@@ -275,18 +261,16 @@
 
   <script>
   document.addEventListener("DOMContentLoaded", () => {
-    const APP_VERSION = "2025.10.16.r1";
+    const APP_VERSION = "2025.10.16.f1";
 
-    // cache buster
+    // ===== cache buster =====
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("v") !== APP_VERSION) {
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set("v", APP_VERSION);
-      window.location.replace(newUrl.href); return;
+      const u = new URL(window.location.href); u.searchParams.set("v", APP_VERSION); window.location.replace(u.href); return;
     }
 
     // ===== Config =====
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby4FAjqzYXFXkplDdh9X9tPq3rpQG2xVRipR_QFXTHDfKmx6823h4hFGb2p8qYG37O7/exec"; // ←差し替え（デプロイURL）
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwV0J4WN_4qXn6tMSm4v7Rq_KlkxGqB4xdYcjyqRPWpZQ-NamG8UxVnw93E1bQOEscc/exec"; // ← あなたのGAS WebアプリURL
 
     // ===== State =====
     const state = {
@@ -295,8 +279,8 @@
       stockUpdate:{ action:null, qrId:null, itemName:null },
       otherUserInfo:{ department:null, phs:null },
       orderContext:{ historyId:null, unitPrice:0 },
-      inventoryCount:{ items:[], currentIndex:0 },
-      newItemPhoto: { file:null, dataUrl:null, mime:null, fileName:null }
+      inventoryCount:{ items:[], currentIndex:0, tempOrderContext:null },
+      newItemPhotoDataUrl:null
     };
 
     // ===== DOM =====
@@ -352,76 +336,85 @@
     const hideAllModals=()=>{ dom.modals.alert.classList.add("hidden"); dom.modals.confirm.classList.add("hidden"); dom.modals.order.classList.add("hidden"); };
     const showDoneAnd=(m,sub,next)=>{ document.getElementById("complete-message").textContent=m; document.getElementById("complete-sub-message").textContent=sub||""; showView("view-action-complete"); setTimeout(next,1100); };
 
-    // Drive helpers
+    // Drive/画像
     function extractDriveFileId(u){
       if(!u) return null;
-      if(/^[A-Za-z0-9_-]{20,}$/.test(u)) return u; // already fileId
-      let m=String(u).match(/\/file\/d\/([A-Za-z0-9_-]+)\//); if(m) return m[1];
-      m=String(u).match(/[?&]id=([A-Za-z0-9_-]+)/); if(m) return m[1];
-      m=String(u).match(/\/d\/([A-Za-z0-9_-]+)/); if(m) return m[1];
+      if(/^[A-Za-z0-9_-]{20,}$/.test(u)) return u; // fileId だけ
+      let m = String(u).match(/\/file\/d\/([A-Za-z0-9_-]+)\//); if(m) return m[1];
+      m = String(u).match(/[?&]id=([A-Za-z0-9_-]+)/); if(m) return m[1];
+      m = String(u).match(/\/d\/([A-Za-z0-9_-]+)/); if(m) return m[1];
       return null;
     }
     const buildDriveThumbUrl=(id,s=480,c=true)=>`https://lh3.googleusercontent.com/d/${id}=s${s}${c?"-c":""}`;
-    const buildDriveFullUrl=(id,s=1600)=>`https://lh3.googleusercontent.com/d/${id}=s${s}`;
-    function deriveImageSources(url){
-      if(!url) return {thumb:null,full:null,id:null};
-      const id=extractDriveFileId(url);
+    const buildDriveFullUrl =(id,s=1600)=>`https://lh3.googleusercontent.com/d/${id}=s${s}`;
+
+    function deriveImageSources(urlOrId){
+      if(!urlOrId) return {thumb:null,full:null,id:null};
+      const id = extractDriveFileId(urlOrId);
       if(id) return {thumb:buildDriveThumbUrl(id,480,true), full:buildDriveFullUrl(id,1600), id};
-      return {thumb:url, full:url, id:null};
+      return {thumb:urlOrId, full:urlOrId, id:null};
     }
-    async function tryImageFallback(img, originalUrl){
-      const id = extractDriveFileId(originalUrl);
-      if(!id) return;
-      try{
-        const res = await fetch(`${GAS_WEB_APP_URL}?action=image64&id=${encodeURIComponent(id)}`, {method:"GET"});
-        const json = await res.json();
-        if(json && json.status === "success" && json.dataUrl){
-          img.src = json.dataUrl;
-          requestAnimationFrame(()=>img.classList.add("loaded"));
-        }
-      }catch(e){ /* silent */ }
+
+    async function fetchPrivateImage64(id){
+      const res = await fetch(`${GAS_WEB_APP_URL}?action=image64&id=${encodeURIComponent(id)}`);
+      const json = await res.json();
+      if(json && json.status==="success" && json.dataUrl) return json.dataUrl;
+      throw new Error(json?.message||"image64 failed");
     }
-    function setProgressiveImage(img,url){
-      const {thumb,full}=deriveImageSources(url);
+
+    function setProgressiveImage(img,urlOrId){
+      const {thumb,full,id} = deriveImageSources(urlOrId);
       if(!thumb){ img.removeAttribute("src"); img.classList.remove("loaded"); return; }
       img.classList.remove("loaded");
-      let triedFallback=false;
 
-      img.onerror = async ()=>{ if(!triedFallback){ triedFallback=true; await tryImageFallback(img,url); } };
-      img.src = thumb;
+      let thumbFailed=false, fullFailed=false;
 
-      if(full && full!==thumb){
-        const hi=new Image();
-        hi.onload=()=>{ img.src=full; requestAnimationFrame(()=>img.classList.add("loaded")); };
-        hi.onerror=async()=>{ if(!triedFallback){ triedFallback=true; await tryImageFallback(img,url); } else requestAnimationFrame(()=>img.classList.add("loaded")); };
-        hi.src=full;
-      }else{
-        requestAnimationFrame(()=>img.classList.add("loaded"));
+      function tryFallback(){
+        if(id){ fetchPrivateImage64(id).then(dataUrl=>{ img.src=dataUrl; requestAnimationFrame(()=>img.classList.add("loaded")); }).catch(()=>{ requestAnimationFrame(()=>img.classList.add("loaded")); }); }
+        else { requestAnimationFrame(()=>img.classList.add("loaded")); }
       }
+
+      img.onerror = ()=>{
+        thumbFailed = true;
+        // サムネ失敗 → 直接フル解像度を試す
+        if(full && full!==thumb){
+          const hi=new Image();
+          hi.onload=()=>{ img.src=full; requestAnimationFrame(()=>img.classList.add("loaded")); };
+          hi.onerror=()=>{ fullFailed=true; tryFallback(); };
+          hi.src=full;
+        }else{
+          tryFallback();
+        }
+      };
+
+      img.onload = ()=>{
+        // サムネ表示後、フルに差し替え（成功時）
+        if(full && full!==thumb){
+          const hi=new Image();
+          hi.onload=()=>{ img.src=full; requestAnimationFrame(()=>img.classList.add("loaded")); };
+          hi.onerror=()=>{ fullFailed=true; if(thumbFailed) tryFallback(); else requestAnimationFrame(()=>img.classList.add("loaded")); };
+          hi.src=full;
+        }else{
+          requestAnimationFrame(()=>img.classList.add("loaded"));
+        }
+      };
+
+      img.src = thumb;
     }
 
-    // API
+    // ===== API =====
     const callGasApi = async(action,payload={})=>{
       toggleLoading(true);
       try{
         const req={action,payload};
         const noAuth=["login","get_departments","get_supplier_emails","get_item_name","get_item_details"];
-        if(!noAuth.includes(action)){
-          if(!state.user) throw new Error("認証情報がありません。再ログインしてください。");
-          req.payload.auth={email:state.user.email};
-        }
-        const res=await fetch(GAS_WEB_APP_URL,{
-          method:"POST", mode:"cors",
-          headers:{ "Content-Type":"text/plain;charset=utf-8" },
-          body:JSON.stringify(req)
-        });
+        if(!noAuth.includes(action)){ if(!state.user) throw new Error("認証情報がありません。再ログインしてください。"); req.payload.auth={email:state.user.email}; }
+        const res=await fetch(GAS_WEB_APP_URL,{ method:"POST", mode:"cors", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:JSON.stringify(req) });
         const json=await res.json();
         if(json.status==="error") throw new Error(json.message||"不明なエラー");
         return json;
-      }catch(e){
-        showAlert(`エラー: ${e.message}`);
-        return null;
-      } finally { toggleLoading(false); }
+      }catch(e){ showAlert(`エラー: ${e.message}`); return null; }
+      finally{ toggleLoading(false); }
     };
 
     // ===== Auth =====
@@ -473,6 +466,7 @@
       if(q) items=items.filter(i=>(i.itemName||"").toLowerCase().includes(q));
       if(onlyReorder) items=items.filter(i=>Number(i.stock)<Number(i.reorderPoint));
       if(onlyOnOrder) items=items.filter(i=>Number(i.orderedQuantity)>0);
+
       if(!items.length){ container.innerHTML=`<p class="text-center text-gray-500">該当する物品はありません。</p>`; return; }
 
       container.innerHTML = items.map(item=>`
@@ -530,12 +524,7 @@
         showView("view-quantity");
       }else if(e.target.classList.contains("photo-button")){
         const barcode=card.dataset.barcode||card.dataset.qrId;
-        pickAndUploadPhoto(barcode,(newUrl)=>{
-          const img=card.querySelector("img");
-          if(img) setProgressiveImage(img,newUrl);
-          const item=state.itemList.find(i=>i.barcode===card.dataset.barcode || i.qrId===card.dataset.qrId);
-          if(item) item.imageUrl=newUrl;
-        });
+        pickAndUploadPhoto(barcode,(newUrl)=>{ const img=card.querySelector("img"); if(img) setProgressiveImage(img,newUrl); });
       }else if(e.target.classList.contains("edit-button")){
         showAlert("編集はこの版では簡略化しています。必要項目は『新規登録』またはスプレッドシートから更新してください。");
       }
@@ -552,7 +541,7 @@
         document.getElementById("quantity-input").value="";
         if(result.orderRequired){
           state.orderContext.historyId=result.historyId;
-          const {to,subject,body,price}=result.mailPreview; state.orderContext.unitPrice=price||0;
+          const {to,subject,body}=result.mailPreview;
           document.getElementById("preview-to-input").value=to||"";
           document.getElementById("preview-subject-input").value=subject||"";
           document.getElementById("preview-body-input").value=body||"";
@@ -620,6 +609,7 @@
       if(result && result.data){
         state.inventoryCount.items=result.data;
         state.inventoryCount.currentIndex=0;
+        state.inventoryCount.tempOrderContext=null;
         displayCurrentInventoryItem();
         showView("view-inventory-count");
       }
@@ -646,7 +636,7 @@
       if(result.status==="success"){
         if(result.orderRequired){
           state.orderContext.historyId=result.historyId;
-          const {to,subject,body,price}=result.mailPreview; state.orderContext.unitPrice=price||0;
+          const {to,subject,body}=result.mailPreview;
           document.getElementById("preview-to-input").value=to||"";
           document.getElementById("preview-subject-input").value=subject||"";
           document.getElementById("preview-body-input").value=body||"";
@@ -659,47 +649,6 @@
     };
 
     // ===== New item =====
-    function compressImageToDataUrl(file,maxSize=1024,quality=0.85){
-      return new Promise((resolve,reject)=>{
-        const img=new Image(), reader=new FileReader();
-        reader.onload=()=>{ img.onload=()=>{ let {width,height}=img; const scale=Math.min(1,maxSize/Math.max(width,height)); width=Math.round(width*scale); height=Math.round(height*scale);
-          const canvas=document.createElement("canvas"); canvas.width=width; canvas.height=height; const ctx=canvas.getContext("2d"); ctx.drawImage(img,0,0,width,height); resolve(canvas.toDataURL("image/jpeg",quality)); };
-          img.onerror=()=>reject(new Error("画像の読み込みに失敗しました。")); img.src=reader.result; };
-        reader.onerror=()=>reject(new Error("画像の読込に失敗しました。")); reader.readAsDataURL(file);
-      });
-    }
-    async function uploadWithRetry(payload,tries=3){
-      let lastErr=null;
-      for(let i=0;i<tries;i++){
-        const res=await callGasApi("upload_item_image",payload);
-        if(res && res.status==="success" && (res.imageUrl||res.fileId)){ return res; }
-        lastErr=new Error(res?.message||"アップロードに失敗しました。");
-        await new Promise(r=>setTimeout(r,600*(i+1)));
-      }
-      throw lastErr||new Error("アップロードに失敗しました。");
-    }
-    function pickAndUploadPhoto(barcode,onDone){
-      if(!barcode){ showAlert("対象のバーコードが不明です。"); return; }
-      const input=document.createElement("input"); input.type="file"; input.accept="image/*"; input.capture="environment";
-      input.onchange=async()=>{
-        const file=input.files && input.files[0]; if(!file) return;
-        try{
-          toggleLoading(true);
-          const dataUrl=await compressImageToDataUrl(file,1024,0.85);
-          const [pfx,base64]=dataUrl.split(",");
-          const mime=(pfx.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
-          const safeName=(file.name||"photo.jpg").replace(/[^\w.\-]/g,"_");
-          const payload={ barcode, imageDataUrl:dataUrl, base64, mimeType:mime, fileName:safeName };
-          const res=await uploadWithRetry(payload,3);
-          const displayUrl=res.imageUrl||res.fileId||"";
-          if(typeof onDone==="function") onDone(displayUrl);
-          showAlert("画像を登録しました。");
-        }catch(e){ showAlert("エラー: "+e.message);
-        }finally{ toggleLoading(false); }
-      };
-      input.click();
-    }
-
     const handleNewItemRegistration=async()=>{
       const payload={
         qrId:document.getElementById("new-qr-id").value.trim(),
@@ -714,36 +663,80 @@
       if(!payload.barcode || !payload.itemName || !payload.stock || !payload.reorderPoint || !payload.price || !payload.supplierEmail){
         showAlert("必須項目（*）を入力してください。"); return;
       }
-
-      // 1) 物品そのものを登録
-      const res=await callGasApi("item_register",payload);
-      if(!(res && res.status==="success")) return;
-
-      // 2) 写真があればアップロード（Drive保存→シート「画像URL」に確実保存）
-      if(state.newItemPhoto.dataUrl){
-        try{
-          const [pfx,base64]=state.newItemPhoto.dataUrl.split(",");
-          const mime=(pfx.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
-          const fileName=state.newItemPhoto.fileName || "photo.jpg";
-          await uploadWithRetry({ barcode:payload.barcode, imageDataUrl:state.newItemPhoto.dataUrl, base64, mimeType:mime, fileName }, 3);
-          showAlert("登録しました。（画像も保存しました）");
-        }catch(e){
-          showAlert("登録しましたが、画像保存でエラー: " + e.message);
+      const result=await callGasApi("item_register",payload);
+      if(result && result.status==="success"){
+        // 画像が選ばれていれば続けてアップロード
+        if(state.newItemPhotoDataUrl){
+          try{
+            const [pfx,base64]=state.newItemPhotoDataUrl.split(",");
+            const mime=(pfx.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
+            await callGasApi("upload_item_image",{ barcode:payload.barcode, imageDataUrl:state.newItemPhotoDataUrl, base64, mimeType:mime, fileName:`photo_${payload.barcode}.jpg` });
+          }catch(e){ showAlert("画像の保存に失敗しました（後から一覧>写真で再登録可能）。"); }
         }
-      }else{
-        showAlert("登録しました。");
-      }
 
-      // フォームクリア
-      document.querySelectorAll("#view-new-item input").forEach(i=>{ if(i.type!=="file") i.value=""; });
-      state.newItemPhoto = { file:null, dataUrl:null, mime:null, fileName:null };
-      document.getElementById("new-photo-name").textContent="未選択";
-      document.getElementById("new-photo-preview").removeAttribute("src");
+        showAlert("登録しました。");
+        document.querySelectorAll("#view-new-item input[type=text],#view-new-item input[type=number],#view-new-item input[type=email]").forEach(i=>i.value="");
+        state.newItemPhotoDataUrl=null;
+        const pv=document.getElementById("new-item-photo-preview"); pv.removeAttribute("src"); pv.classList.remove("loaded");
+      }
     };
 
-    // ===== Listeners =====
+    // ===== Photo upload（圧縮＋再送＋互換） =====
+    function compressImageToDataUrl(file,maxSize=1024,quality=0.8){
+      return new Promise((resolve,reject)=>{
+        const img=new Image(), reader=new FileReader();
+        reader.onload=()=>{ img.onload=()=>{ let {width,height}=img; const scale=Math.min(1,maxSize/Math.max(width,height)); width=Math.round(width*scale); height=Math.round(height*scale);
+          const canvas=document.createElement("canvas"); canvas.width=width; canvas.height=height; const ctx=canvas.getContext("2d"); ctx.drawImage(img,0,0,width,height); resolve(canvas.toDataURL("image/jpeg",quality)); };
+          img.onerror=()=>reject(new Error("画像の読み込みに失敗しました。")); img.src=reader.result; };
+        reader.onerror=()=>reject(new Error("画像の読込に失敗しました。")); reader.readAsDataURL(file);
+      });
+    }
+    async function uploadWithRetry(payload,tries=3){
+      let err=null;
+      for(let i=0;i<tries;i++){
+        const res=await callGasApi("upload_item_image",payload);
+        if(res && res.status==="success" && (res.imageUrl||res.fileId)) return res;
+        err=new Error(res?.message||"アップロードに失敗しました。");
+        await new Promise(r=>setTimeout(r,600*(i+1)));
+      }
+      throw err||new Error("アップロードに失敗しました。");
+    }
+    function pickAndUploadPhoto(barcode,onDone){
+      if(!barcode){ showAlert("対象のバーコードが不明です。"); return; }
+      const input=document.createElement("input"); input.type="file"; input.accept="image/*"; input.capture="environment";
+      input.onchange=async()=>{
+        const file=input.files && input.files[0]; if(!file) return;
+        try{
+          toggleLoading(true);
+          const dataUrl=await compressImageToDataUrl(file,1024,0.8);
+          const [pfx,base64]=dataUrl.split(","); const mime=(pfx.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
+          const safeName=(file.name||"photo.jpg").replace(/[^\w.\-]/g,"_");
+          const res=await uploadWithRetry({ barcode, imageDataUrl:dataUrl, base64, mimeType:mime, fileName:safeName },3);
+          const displayUrl=res.imageUrl||res.fileId||"";
+          if(typeof onDone==="function") onDone(displayUrl);
+          showAlert("画像を登録しました。");
+        }catch(e){ showAlert("エラー: "+e.message);
+        }finally{ toggleLoading(false); }
+      };
+      input.click();
+    }
+
+    // 新規登録フォーム用：選択→プレビューだけ（保存は登録後）
+    document.getElementById("new-item-photo-button").addEventListener("click",()=>document.getElementById("new-item-photo-input").click());
+    document.getElementById("new-item-photo-input").addEventListener("change", async(e)=>{
+      const file=e.target.files && e.target.files[0]; if(!file) return;
+      try{
+        const dataUrl=await compressImageToDataUrl(file,1024,0.8);
+        state.newItemPhotoDataUrl=dataUrl;
+        const pv=document.getElementById("new-item-photo-preview");
+        pv.classList.remove("loaded");
+        pv.onload=()=>requestAnimationFrame(()=>pv.classList.add("loaded"));
+        pv.src=dataUrl;
+      }catch(err){ showAlert("画像の処理に失敗しました。"); }
+    });
+
+    // ===== listeners =====
     const setupListeners=()=>{
-      // Login
       dom.loginId.addEventListener("input",()=>{ if(dom.loginId.value.length===5) handleLogin({loginId:dom.loginId.value}); });
       document.getElementById("other-staff-login-button").addEventListener("click",()=>{ state.user={role:"その他"}; dom.userName.textContent="その他"; showView("view-home-other-1"); loadDepartments(); });
       document.getElementById("phs-submit-button").addEventListener("click",()=>{ const phs=document.getElementById("phs-input").value; if(phs&&phs.trim()!==""){ state.otherUserInfo.phs=phs.trim(); showView("view-home-other-menu"); } else showAlert("PHS番号を入力してください。"); });
@@ -751,64 +744,32 @@
       dom.mainMenuBtn.addEventListener("click",goHome);
       document.getElementById("logout-button").addEventListener("click",handleLogout);
 
-      // Main menu
       document.getElementById("item-list-button").addEventListener("click",handleShowItemList);
       document.getElementById("inventory-count-button").addEventListener("click",startInventoryCount);
       document.getElementById("new-item-button").addEventListener("click",()=>{ loadSupplierEmails(); showView("view-new-item"); });
-
       document.getElementById("order-history-button").addEventListener("click",handleGetOrderHistory);
 
-      // Back & modals
       document.querySelectorAll(".back-button").forEach(b=>b.addEventListener("click",e=>{ const t=e.currentTarget.dataset.target; t?showView(t):goBack(); }));
       document.getElementById("alert-ok-button").addEventListener("click",hideAllModals);
       document.getElementById("confirm-ok-button").addEventListener("click",()=>{ dom.modals.confirm.classList.add("hidden"); if(confirmCb) confirmCb(); confirmCb=null; });
       document.getElementById("confirm-cancel-button").addEventListener("click",()=>{ dom.modals.confirm.classList.add("hidden"); confirmCb=null; });
 
-      // Stock update
       document.getElementById("submit-stock-update").addEventListener("click",handleStockUpdate);
 
-      // Item list interactions
       document.getElementById("item-list-container").addEventListener("click",handleItemListClick);
       document.getElementById("item-search-input").addEventListener("input",renderItemList);
       document.getElementById("filter-reorder-needed").addEventListener("change",renderItemList);
       document.getElementById("filter-on-order").addEventListener("change",renderItemList);
 
-      // Inventory
       document.getElementById("inventory-confirm-button").addEventListener("click",handleInventoryConfirm);
       document.getElementById("inventory-back-button").addEventListener("click",goHome);
       window.addEventListener("resize",()=>{ if(state.currentView==="view-inventory-count") sizeInventoryView(); });
 
-      // Order modal
       document.getElementById("order-send-button").addEventListener("click",handleOrderSend);
       document.getElementById("order-discard-button").addEventListener("click",()=>{ dom.modals.order.classList.add("hidden"); if(state.currentView==="view-inventory-count"){ state.inventoryCount.currentIndex++; displayCurrentInventoryItem(); } });
 
       document.getElementById("order-history-list").addEventListener("click",(e)=>{ const btn=e.target.closest(".cancel-order-button"); if(!btn) return; handleCancelOrderFromHistory(btn.dataset.mailId,btn.dataset.historyId); });
 
-      // New item photo pick
-      const photoInput = document.getElementById("new-photo-input");
-      const photoPick = document.getElementById("new-photo-pick");
-      const photoName = document.getElementById("new-photo-name");
-      const photoPreview = document.getElementById("new-photo-preview");
-
-      photoPick.addEventListener("click",()=>photoInput.click());
-      photoInput.addEventListener("change", async ()=>{
-        const file = photoInput.files && photoInput.files[0];
-        if(!file){ photoName.textContent="未選択"; photoPreview.removeAttribute("src"); state.newItemPhoto = {file:null,dataUrl:null,mime:null,fileName:null}; return; }
-        photoName.textContent = file.name;
-        toggleLoading(true);
-        try{
-          const dataUrl = await compressImageToDataUrl(file, 1024, 0.85);
-          state.newItemPhoto = { file, dataUrl, mime: "image/jpeg", fileName: (file.name||"photo.jpg").replace(/[^\w.\-]/g,"_") };
-          setProgressiveImage(photoPreview, dataUrl);
-        }catch(e){
-          state.newItemPhoto = { file:null, dataUrl:null, mime:null, fileName:null };
-          showAlert("画像処理に失敗しました。別の画像をお試しください。");
-        }finally{
-          toggleLoading(false);
-        }
-      });
-
-      // New item submit
       document.getElementById("submit-new-item").addEventListener("click",handleNewItemRegistration);
     };
 
