@@ -34,13 +34,8 @@
     #loading-overlay{z-index:70}
     #alert-modal,#confirm-modal{z-index:80}
 
-    /* 棚卸しビュー */
+    /* 棚卸しレイアウト */
     .inventory-fit{ display:flex; flex-direction:column; gap:.5rem }
-    /* 商品名＋用途（左）／在庫入力（右）を 2:1 で横並び */
-    .inventory-row{ display:grid; grid-template-columns:2fr 1fr; gap:.75rem; align-items:start }
-
-    /* 旧：±ボタン用（未使用） */
-    .square-btn{ width:2.5rem; height:2.5rem }
     .roller-input{ font-size:2rem; line-height:1; padding:.5rem .75rem }
   </style>
 </head>
@@ -49,7 +44,7 @@
     <header id="app-header" class="bg-blue-600 text-white p-4 flex justify-between items-center hidden">
       <div class="flex items-center space-x-3">
         <button id="main-menu-button" class="hidden flex items-center space-x-2 p-2 -ml-2 rounded-md hover:bg-blue-700 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0 .621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
           <span class="text-lg font-bold">ホーム</span>
         </button>
         <span id="header-app-title" class="hidden text-lg font-bold">物品管理アプリ</span>
@@ -178,27 +173,32 @@
             <img id="inventory-image" alt="物品画像" class="blur-up" loading="lazy" fetchpriority="high" />
           </div>
 
-          <!-- 画像の下：左＝商品名・用途／右＝在庫入力（全体の約1/3幅） -->
-          <div class="inventory-row">
-            <div>
-              <h3 id="inventory-item-name" class="text-lg font-bold text-gray-800 leading-tight"></h3>
-              <p class="text-sm text-gray-600">用途: <span id="inventory-usefor" class="font-medium text-gray-700"></span></p>
+          <!-- 画像の下：左に［名称＋用途＋戻る］、右に［入力欄→確定］ -->
+          <div class="grid grid-cols-5 gap-3 items-start mt-2">
+            <!-- 左：見やすい名称＋用途 -->
+            <div class="col-span-3">
+              <h3 id="inventory-item-name" class="text-lg font-bold text-gray-900 leading-snug break-words"></h3>
+              <p class="text-sm text-gray-600 mt-1">
+                用途: <span id="inventory-usefor" class="font-medium text-gray-800"></span>
+              </p>
+              <button id="inventory-back-button" class="mt-2 px-3 py-2 rounded-md border text-gray-700">戻る</button>
             </div>
-            <div class="justify-self-end">
+
+            <!-- 右：在庫入力（約1/3幅）＋ その下に確定（半幅） -->
+            <div class="col-span-2 text-center">
               <input
                 type="number"
                 id="inventory-actual-stock"
                 inputmode="numeric"
                 min="0"
-                class="roller-input w-full border-2 rounded-lg text-center"
+                class="roller-input border-2 rounded-lg text-center w-28 mx-auto"
               />
+              <button
+                id="inventory-confirm-button"
+                class="mt-2 w-28 bg-green-600 text-white rounded-md font-bold px-4 py-3">
+                確定
+              </button>
             </div>
-          </div>
-
-          <!-- その下に“半分幅”の確定ボタン（戻るは左に小さめ） -->
-          <div class="mt-3 flex items-center justify-between">
-            <button id="inventory-back-button" class="px-4 py-2 rounded-md border text-gray-700">戻る</button>
-            <button id="inventory-confirm-button" class="w-1/2 bg-green-600 text-white rounded-md font-bold px-4 py-3">確定</button>
           </div>
 
           <!-- 帳簿上の在庫（省スペースのため非表示のまま） -->
@@ -279,7 +279,7 @@
     }
 
     // ===== Config =====
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyuTRJmgZeGop4r1xGyg5RyyvzhSpezD08WpYEXLHWCACDIJrl1bb_O-svRuBgQhph_/exec"; // ←差し替え
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzm0JD1DEYLiYJUW3wQ_Dp0VVySQm4vci9VWI0KIJFvwa5HrLbF0BUvOOmnUlf3qMwG/exec"; // ←差し替え
 
     // ===== State =====
     const state = {
@@ -344,16 +344,30 @@
     const hideAllModals=()=>{ dom.modals.alert.classList.add("hidden"); dom.modals.confirm.classList.add("hidden"); dom.modals.order.classList.add("hidden"); };
     const showDoneAnd=(m,sub,next)=>{ document.getElementById("complete-message").textContent=m; document.getElementById("complete-sub-message").textContent=sub||""; showView("view-action-complete"); setTimeout(next,1100); };
 
-    // Drive helpers
+    // Drive helpers + 失敗時フォールバック（image64）
     function extractDriveFileId(u){ if(!u) return null; if(/^[A-Za-z0-9_-]{20,}$/.test(u)) return u; let m=String(u).match(/\/file\/d\/([A-Za-z0-9_-]+)\//); if(m) return m[1]; m=String(u).match(/[?&]id=([A-Za-z0-9_-]+)/); if(m) return m[1]; m=String(u).match(/\/d\/([A-Za-z0-9_-]+)/); if(m) return m[1]; return null; }
     const buildDriveThumbUrl=(id,s=480,c=true)=>`https://lh3.googleusercontent.com/d/${id}=s${s}${c?"-c":""}`;
     const buildDriveFullUrl=(id,s=1600)=>`https://lh3.googleusercontent.com/d/${id}=s${s}`;
     function deriveImageSources(url){ if(!url) return {thumb:null,full:null}; const id=extractDriveFileId(url); if(id) return {thumb:buildDriveThumbUrl(id,480,true), full:buildDriveFullUrl(id,1600)}; return {thumb:url, full:url}; }
     function setProgressiveImage(img,url){
-      const {thumb,full}=deriveImageSources(url); if(!thumb){ img.removeAttribute("src"); img.classList.remove("loaded"); return; }
-      img.classList.remove("loaded"); img.src = thumb;
-      if(full && full!==thumb){ const hi=new Image(); hi.onload=()=>{ img.src=full; requestAnimationFrame(()=>img.classList.add("loaded")); }; hi.onerror=()=>requestAnimationFrame(()=>img.classList.add("loaded")); hi.src=full; }
-      else requestAnimationFrame(()=>img.classList.add("loaded"));
+      const {thumb,full}=deriveImageSources(url);
+      if(!thumb){ img.removeAttribute("src"); img.classList.remove("loaded"); return; }
+      img.onerror = () => {
+        const id = extractDriveFileId(url);
+        if(!id){ img.onerror=null; img.classList.add("loaded"); return; }
+        img.onerror = null;
+        img.src = `${GAS_WEB_APP_URL}?action=image64&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+      };
+      img.classList.remove("loaded");
+      img.src = thumb;
+      if(full && full!==thumb){
+        const hi=new Image();
+        hi.onload=()=>{ img.src=full; requestAnimationFrame(()=>img.classList.add("loaded")); };
+        hi.onerror=()=>requestAnimationFrame(()=>img.classList.add("loaded"));
+        hi.src=full;
+      }else{
+        requestAnimationFrame(()=>img.classList.add("loaded"));
+      }
     }
 
     // API
@@ -626,7 +640,7 @@
       }
     };
 
-    // Photo upload（圧縮＋再送）
+    // Photo upload（圧縮＋再送＋互換フィールド）
     function compressImageToDataUrl(file,maxSize=1024,quality=0.8){
       return new Promise((resolve,reject)=>{
         const img=new Image(), reader=new FileReader();
@@ -652,6 +666,7 @@
       input.onchange=async()=>{
         const file=input.files && input.files[0]; if(!file) return;
         try{
+          toggleLoading(true);
           const dataUrl=await compressImageToDataUrl(file,1024,0.8);
           const [pfx,base64]=dataUrl.split(",");
           const mime=(pfx.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
@@ -661,7 +676,8 @@
           const displayUrl=res.imageUrl||res.fileId||"";
           if(typeof onDone==="function") onDone(displayUrl);
           showAlert("画像を登録しました。");
-        }catch(e){ showAlert("エラー: "+e.message); }
+        }catch(e){ showAlert("エラー: "+e.message);
+        }finally{ toggleLoading(false); }
       };
       input.click();
     }
