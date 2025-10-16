@@ -34,11 +34,12 @@
     #loading-overlay{z-index:70}
     #alert-modal,#confirm-modal{z-index:80}
 
-    /* 棚卸し1画面化 */
+    /* 棚卸しビュー */
     .inventory-fit{ display:flex; flex-direction:column; gap:.5rem }
-    .inventory-grid{ display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:start }
+    /* 商品名＋用途（左）／在庫入力（右）を 2:1 で横並び */
+    .inventory-row{ display:grid; grid-template-columns:2fr 1fr; gap:.75rem; align-items:start }
 
-    /* 旧：±ボタンのサイズ（今回は未使用だが残置しても影響なし） */
+    /* 旧：±ボタン用（未使用） */
     .square-btn{ width:2.5rem; height:2.5rem }
     .roller-input{ font-size:2rem; line-height:1; padding:.5rem .75rem }
   </style>
@@ -48,7 +49,7 @@
     <header id="app-header" class="bg-blue-600 text-white p-4 flex justify-between items-center hidden">
       <div class="flex items-center space-x-3">
         <button id="main-menu-button" class="hidden flex items-center space-x-2 p-2 -ml-2 rounded-md hover:bg-blue-700 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0 .621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
           <span class="text-lg font-bold">ホーム</span>
         </button>
         <span id="header-app-title" class="hidden text-lg font-bold">物品管理アプリ</span>
@@ -177,14 +178,13 @@
             <img id="inventory-image" alt="物品画像" class="blur-up" loading="lazy" fetchpriority="high" />
           </div>
 
-          <!-- 2カラム：左に名称/用途、右に入力欄＋（その下に）戻る/確定 -->
-          <div class="inventory-grid">
+          <!-- 画像の下：左＝商品名・用途／右＝在庫入力（全体の約1/3幅） -->
+          <div class="inventory-row">
             <div>
-              <h3 id="inventory-item-name" class="text-base font-bold text-gray-800"></h3>
-              <p class="text-xs text-gray-600 mb-1">用途: <span id="inventory-usefor" class="font-medium text-gray-700"></span></p>
+              <h3 id="inventory-item-name" class="text-lg font-bold text-gray-800 leading-tight"></h3>
+              <p class="text-sm text-gray-600">用途: <span id="inventory-usefor" class="font-medium text-gray-700"></span></p>
             </div>
-
-            <div class="justify-self-end w-full">
+            <div class="justify-self-end">
               <input
                 type="number"
                 id="inventory-actual-stock"
@@ -192,11 +192,13 @@
                 min="0"
                 class="roller-input w-full border-2 rounded-lg text-center"
               />
-              <div class="mt-2 flex gap-2">
-                <button id="inventory-back-button" class="flex-1 px-4 py-3 rounded-md border text-gray-700">戻る</button>
-                <button id="inventory-confirm-button" class="flex-1 bg-green-600 text-white rounded-md font-bold px-4 py-3">確定</button>
-              </div>
             </div>
+          </div>
+
+          <!-- その下に“半分幅”の確定ボタン（戻るは左に小さめ） -->
+          <div class="mt-3 flex items-center justify-between">
+            <button id="inventory-back-button" class="px-4 py-2 rounded-md border text-gray-700">戻る</button>
+            <button id="inventory-confirm-button" class="w-1/2 bg-green-600 text-white rounded-md font-bold px-4 py-3">確定</button>
           </div>
 
           <!-- 帳簿上の在庫（省スペースのため非表示のまま） -->
@@ -266,7 +268,7 @@
 
   <script>
   document.addEventListener("DOMContentLoaded", () => {
-    const APP_VERSION = "2025.10.15.r3";
+    const APP_VERSION = "2025.10.15.r4";
 
     // cache buster
     const urlParams = new URLSearchParams(window.location.search);
@@ -277,7 +279,7 @@
     }
 
     // ===== Config =====
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCReMWBqF-SjlSVV-G2rtCqT6Ga2K1LBwZRYN1u7d9cBqDAVbJmAzRQOV1gY5UFoy2/exec"; // ←差し替え
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyuTRJmgZeGop4r1xGyg5RyyvzhSpezD08WpYEXLHWCACDIJrl1bb_O-svRuBgQhph_/exec"; // ←差し替え
 
     // ===== State =====
     const state = {
@@ -624,7 +626,7 @@
       }
     };
 
-    // Photo upload（圧縮＋再送＋互換フィールド）
+    // Photo upload（圧縮＋再送）
     function compressImageToDataUrl(file,maxSize=1024,quality=0.8){
       return new Promise((resolve,reject)=>{
         const img=new Image(), reader=new FileReader();
@@ -650,7 +652,6 @@
       input.onchange=async()=>{
         const file=input.files && input.files[0]; if(!file) return;
         try{
-          toggleLoading(true);
           const dataUrl=await compressImageToDataUrl(file,1024,0.8);
           const [pfx,base64]=dataUrl.split(",");
           const mime=(pfx.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
@@ -660,8 +661,7 @@
           const displayUrl=res.imageUrl||res.fileId||"";
           if(typeof onDone==="function") onDone(displayUrl);
           showAlert("画像を登録しました。");
-        }catch(e){ showAlert("エラー: "+e.message);
-        }finally{ toggleLoading(false); }
+        }catch(e){ showAlert("エラー: "+e.message); }
       };
       input.click();
     }
