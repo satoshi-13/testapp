@@ -273,7 +273,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const APP_VERSION = "2025.10.20.r5.1";
+  const APP_VERSION = "2025.10.20.r5.2";
   console.log('=== 在庫管理アプリ v5 起動 ===');
   console.log('Version:', APP_VERSION);
   
@@ -290,7 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== Config =====
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyGNqmxwx2QeyFV8heOU9MBvnwWrV8q5cU2p7u-E7zFceD65u0fahA6UrYzfhat5FXU/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwdH8CgYQm6hV9ioFtljdOiNc1ro6pudi9DY5u0Pk1JLATzwzuDU-9zNUhBtOyig_su/exec";
   const DEBUG = true;
 
   // ===== State =====
@@ -878,6 +878,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const handleInventoryBack = () => {
+    log('Inventory back');
+    if (state.inventoryCount.currentIndex > 0) {
+      // 前の商品に戻る
+      state.inventoryCount.currentIndex--;
+      displayCurrentInventoryItem();
+    } else {
+      // 最初の商品の場合はメインメニューへ
+      goHome();
+    }
+  };
+
   // New item
   const handleNewItemRegistration=async()=>{
     log('New item registration');
@@ -1029,7 +1041,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("filter-on-order").addEventListener("change",renderItemList);
 
     document.getElementById("inventory-confirm-button").addEventListener("click",handleInventoryConfirm);
-    document.getElementById("inventory-back-button").addEventListener("click",goHome);
+    document.getElementById("inventory-back-button").addEventListener("click",handleInventoryBack);
     setupDrumroll(document.getElementById("inventory-actual-stock"));
 
     document.getElementById("order-send-button").addEventListener("click",handleOrderSend);
