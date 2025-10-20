@@ -178,7 +178,7 @@
               <input type="number" id="inventory-actual-stock" class="roller-input w-20 border-2 rounded-lg text-center" inputmode="numeric" />
               <button id="roll-inc" class="square-btn rounded bg-gray-200 flex items-center justify-center">＋</button>
             </div>
-            <button id="inventory-confirm-button" class="mt-1 square-btn bg-green-600 text-white rounded-md font-bold flex items-center justify-center">確定</button>
+            <button id="inventory-confirm-button" class="mt-1 w-full bg-green-600 text-white rounded-md font-bold flex items-center justify-center py-2">確定</button>
           </div>
         </div>
         <p id="inventory-expected-line" class="hidden text-sm text-gray-600 mt-1">
@@ -244,7 +244,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const APP_VERSION = "2025.10.20.r1"; // cache buster
+  const APP_VERSION = "2025.10.20.r2"; // cache buster
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("v") !== APP_VERSION) {
     const newUrl = new URL(window.location.href);
@@ -254,7 +254,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== Config =====
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyTjCxvVNr-p2L5f4tnpvDRUzgU4f_tyXpBdU0hqee8fCBK8Ae2i0jfG3LrW50LGgKi/exec"; // ←差し替え
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw7vo76GmOuxiUp6_B3knhcJOU25eceI_dB1X0tlOZAGEYe2Zym-B1epmRjwmJKvwP3/exec";
+  const DEBUG = true; // デバッグモード
 
   // ===== State =====
   const state = {
@@ -286,6 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // ===== helpers =====
+  const log = (...args) => { if(DEBUG) console.log('[APP]', ...args); };
   const freezeBody = (on)=>document.body.classList.toggle("overflow-hidden", on);
 
   const sizeInventoryView = ()=>{
@@ -297,6 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const showView = (id, isBack=false)=>{
+    log('showView:', id, 'isBack:', isBack);
     dom.views.forEach(v=>v.style.display="none");
     const el = document.getElementById(id);
     if(el){
@@ -315,10 +318,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const goBack = ()=>{ const prev = state.historyStack.pop(); if(prev) showView(prev,true); };
   const goHome = ()=>{ state.historyStack=[]; showView("view-home-user"); };
-  const toggleLoading = (on)=>dom.loading.classList.toggle("hidden", !on);
-  const showAlert = (m)=>{ document.getElementById("alert-message").textContent=m; dom.modals.alert.classList.remove("hidden"); };
+  const toggleLoading = (on)=>{ log('Loading:', on); dom.loading.classList.toggle("hidden", !on); };
+  const showAlert = (m)=>{ log('Alert:', m); document.getElementById("alert-message").textContent=m; dom.modals.alert.classList.remove("hidden"); };
   let confirmCb=null;
-  const showConfirm=(m,onOk)=>{ document.getElementById("confirm-message").textContent=m; dom.modals.confirm.classList.remove("hidden"); confirmCb=onOk; };
+  const showConfirm=(m,onOk)=>{ log('Confirm:', m); document.getElementById("confirm-message").textContent=m; dom.modals.confirm.classList.remove("hidden"); confirmCb=onOk; };
   const hideAllModals=()=>{ dom.modals.alert.classList.add("hidden"); dom.modals.confirm.classList.add("hidden"); dom.modals.order.classList.add("hidden"); };
   const showDoneAnd=(m,sub,next)=>{ document.getElementById("complete-message").textContent=m; document.getElementById("complete-sub-message").textContent=sub||""; showView("view-action-complete"); setTimeout(next,1100); };
 
@@ -351,6 +354,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const fallback = fileId ? `${GAS_WEB_APP_URL}?action=image64&id=${fileId}` : null;
 
     img.onerror = ()=>{
+      log('Image load error, trying fallback');
       if (fallback) {
         img.onerror = null;
         img.src = fallback;
@@ -374,6 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // API
   const callGasApi = async(action,payload={})=>{
+    log('callGasApi:', action, payload);
     toggleLoading(true);
     try{
       const req={action,payload};
@@ -382,6 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if(!state.user) throw new Error("認証情報がありません。再ログインしてください。");
         req.payload.auth={email:state.user.email};
       }
+      log('Request:', req);
       const res=await fetch(GAS_WEB_APP_URL,{
         method:"POST",
         mode:"cors",
@@ -389,9 +395,11 @@ document.addEventListener("DOMContentLoaded", () => {
         body:JSON.stringify(req)
       });
       const json=await res.json();
+      log('Response:', json);
       if(json.status==="error") throw new Error(json.message||"不明なエラー");
       return json;
     }catch(e){
+      log('API Error:', e);
       showAlert(`エラー: ${e.message}`);
       return null;
     } finally{
@@ -449,15 +457,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Item list
   const handleShowItemList=async()=>{
+    log('handleShowItemList called');
     const result=await callGasApi("get_item_list");
+    log('get_item_list result:', result);
     if(result && result.data){
       state.itemList=result.data;
+      log('Loaded', state.itemList.length, 'items');
       renderItemList();
       showView("view-item-list");
+    } else {
+      showAlert('物品一覧の取得に失敗しました。');
     }
   };
 
   const renderItemList=()=>{
+    log('renderItemList called');
     const container=document.getElementById("item-list-container");
     const q=(document.getElementById("item-search-input").value||"").toLowerCase();
     const onlyReorder=document.getElementById("filter-reorder-needed").checked;
@@ -467,6 +481,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if(q) items=items.filter(i=>(i.itemName||"").toLowerCase().includes(q));
     if(onlyReorder) items=items.filter(i=>Number(i.stock)<Number(i.reorderPoint));
     if(onlyOnOrder) items=items.filter(i=>Number(i.orderedQuantity)>0);
+
+    log('Filtered items:', items.length);
 
     if(!items.length){
       container.innerHTML = `<p class="text-center text-gray-500">該当する物品はありません。</p>`;
@@ -486,7 +502,7 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
           <div class="w-16 h-16 overflow-hidden rounded ml-3 bg-gray-100">
             ${item.imageUrl
-              ? `<img src="${item.imageUrl}" alt="" class="w-16 h-16 object-cover rounded">`
+              ? `<img src="${item.imageUrl}" alt="" class="item-image w-16 h-16 object-cover rounded">`
               : `<div class="w-16 h-16 flex items-center justify-center text-gray-300">—</div>`}
           </div>
         </div>
@@ -507,15 +523,15 @@ document.addEventListener("DOMContentLoaded", () => {
           <button class="photo-button bg-purple-500 text-white px-4 py-1 rounded-md text-sm">写真</button>
           <button class="inflow-button bg-green-500 text-white px-4 py-1 rounded-md text-sm">入庫</button>
           <button class="outflow-button bg-yellow-500 text-white px-4 py-1 rounded-md text-sm">出庫</button>
-          <button class="edit-button bg-blue-500 text-white px-4 py-1 rounded-md text-sm">変更</button>
         </div>
       </div>
     `).join("");
 
-    document.querySelectorAll("#item-list-container .item-card").forEach(card=>{
-      const img=card.querySelector("img");
-      const url=card.dataset.imageUrl||img?.getAttribute("src")||"";
-      if(img && url) setProgressiveImage(img,url);
+    // 画像の段階的読み込み
+    document.querySelectorAll("#item-list-container .item-image").forEach(img=>{
+      const card = img.closest('.item-card');
+      const url = card.dataset.imageUrl;
+      if(url) setProgressiveImage(img, url);
     });
   };
 
@@ -523,29 +539,48 @@ document.addEventListener("DOMContentLoaded", () => {
     const card=e.target.closest(".item-card");
     if(!card) return;
 
-    if(e.target.classList.contains("inflow-button")||e.target.classList.contains("outflow-button")){
-      const action=e.target.classList.contains("inflow-button")?"入庫":"出庫";
-      const code=card.dataset.qrId||card.dataset.barcode;
-      state.stockUpdate={ action, qrId:code, itemName:card.dataset.itemName||"" };
+    log('Item card clicked:', card.dataset);
+
+    if(e.target.classList.contains("inflow-button")){
+      log('Inflow button clicked');
+      const code=card.dataset.barcode || card.dataset.qrId;
+      if(!code){ showAlert('コードが見つかりません'); return; }
+      state.stockUpdate={ action:"入庫", qrId:code, itemName:card.dataset.itemName||"" };
       document.getElementById("final-code-display").textContent=code||"";
       document.getElementById("item-name-display-quantity").textContent=state.stockUpdate.itemName||"";
-      document.getElementById("quantity-title").textContent=action;
+      document.getElementById("quantity-title").textContent="入庫";
+      document.getElementById("quantity-input").value="";
       showView("view-quantity");
-    }else if(e.target.classList.contains("photo-button")){
+    }
+    else if(e.target.classList.contains("outflow-button")){
+      log('Outflow button clicked');
+      const code=card.dataset.barcode || card.dataset.qrId;
+      if(!code){ showAlert('コードが見つかりません'); return; }
+      state.stockUpdate={ action:"出庫", qrId:code, itemName:card.dataset.itemName||"" };
+      document.getElementById("final-code-display").textContent=code||"";
+      document.getElementById("item-name-display-quantity").textContent=state.stockUpdate.itemName||"";
+      document.getElementById("quantity-title").textContent="出庫";
+      document.getElementById("quantity-input").value="";
+      showView("view-quantity");
+    }
+    else if(e.target.classList.contains("photo-button")){
+      log('Photo button clicked');
       const barcode=card.dataset.barcode||card.dataset.qrId;
+      if(!barcode){ showAlert('コードが見つかりません'); return; }
       pickAndUploadPhoto(barcode,(newUrl)=>{
-        const img=card.querySelector("img");
+        log('Photo uploaded, new URL:', newUrl);
+        const img=card.querySelector(".item-image");
         if(img) setProgressiveImage(img,newUrl);
-        const item=state.itemList.find(i=>i.barcode===card.dataset.barcode || i.qrId===card.dataset.qrId);
+        const item=state.itemList.find(i=>(i.barcode===card.dataset.barcode) || (i.qrId===card.dataset.qrId));
         if(item) item.imageUrl=newUrl;
+        card.dataset.imageUrl = newUrl;
       });
-    }else if(e.target.classList.contains("edit-button")){
-      showAlert("編集はこの版では簡略化しています。必要項目は『新規登録』またはスプレッドシートから更新してください。");
     }
   };
 
   // Stock update
   const handleStockUpdate=async()=>{
+    log('handleStockUpdate called');
     const qty=parseInt(document.getElementById("quantity-input").value,10);
     if(!qty || qty<=0){ showAlert("正しい数量を入力してください。"); return; }
 
@@ -557,12 +592,15 @@ document.addEventListener("DOMContentLoaded", () => {
       phs:state.otherUserInfo.phs
     };
 
+    log('Stock update payload:', payload);
+
     const result=await callGasApi("stock_update",payload);
     if(!result) return;
 
     if(result.status==="success"){
       document.getElementById("quantity-input").value="";
       if(result.orderRequired){
+        log('Order required');
         state.orderContext.historyId=result.historyId;
         const {to,subject,body,price}=result.mailPreview;
         state.orderContext.unitPrice=price||0;
@@ -585,6 +623,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const parseQuantityFromBody=(t)=>{ const m=String(t||"").match(/数量[：:\s]*([0-9]+)/); return m?parseInt(m[1],10):null; };
 
   const handleOrderSend=async()=>{
+    log('handleOrderSend called');
     const to=document.getElementById("preview-to-input").value.trim();
     const subject=document.getElementById("preview-subject-input").value.trim();
     const body=document.getElementById("preview-body-input").value.trim();
@@ -610,6 +649,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Order history
   const handleGetOrderHistory=async()=>{
+    log('handleGetOrderHistory called');
     const result=await callGasApi("get_order_history",{});
     if(!result||!result.data) return;
     const list=document.getElementById("order-history-list");
@@ -646,23 +686,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Inventory
   const startInventoryCount=async()=>{
+    log('startInventoryCount called');
     const result=await callGasApi("get_item_list");
     if(result && result.data){
       state.inventoryCount.items=result.data;
       state.inventoryCount.currentIndex=0;
       state.inventoryCount.tempOrderContext=null;
+      log('Starting inventory with', state.inventoryCount.items.length, 'items');
       displayCurrentInventoryItem();
       showView("view-inventory-count");
+    } else {
+      showAlert('物品一覧の取得に失敗しました。');
     }
   };
 
   const displayCurrentInventoryItem=()=>{
     const {items,currentIndex}=state.inventoryCount;
+    log('displayCurrentInventoryItem:', currentIndex, '/', items.length);
+    
     if(currentIndex>=items.length){
       showDoneAnd("棚卸し完了","全ての物品の確認が終わりました。", goHome);
       return;
     }
     const item=items[currentIndex];
+    log('Current item:', item);
+    
     document.getElementById("inventory-count-progress").textContent = `${currentIndex+1} / ${items.length}`;
     document.getElementById("inventory-item-name").textContent=item.itemName||"";
     document.getElementById("inventory-usefor").textContent=item.useFor?item.useFor:"—";
@@ -675,18 +723,28 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const handleInventoryConfirm=async()=>{
+    log('handleInventoryConfirm called');
     const {items,currentIndex}=state.inventoryCount;
     if(currentIndex>=items.length) return;
     const item=items[currentIndex];
     const actual=parseInt(document.getElementById("inventory-actual-stock").value,10);
     if(Number.isNaN(actual)||actual<0){ showAlert("有効な在庫数を入力してください。"); return; }
 
-    const payload={ qrId:item.barcode||item.qrId, type:"棚卸修正", quantity:actual, isCorrection:true };
+    const payload={ 
+      qrId:item.barcode||item.qrId, 
+      type:"棚卸修正", 
+      quantity:actual, 
+      isCorrection:true 
+    };
+    
+    log('Inventory confirm payload:', payload);
+
     const result=await callGasApi("stock_update",payload);
     if(!result) return;
 
     if(result.status==="success"){
       if(result.orderRequired){
+        log('Order required from inventory');
         state.orderContext.historyId=result.historyId;
         const {to,subject,body,price}=result.mailPreview;
         state.orderContext.unitPrice=price||0;
@@ -704,6 +762,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // New item
   const handleNewItemRegistration=async()=>{
+    log('handleNewItemRegistration called');
     const payload={
       qrId:document.getElementById("new-qr-id").value.trim(),
       barcode:document.getElementById("new-barcode").value.trim(),
@@ -725,7 +784,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Photo upload（圧縮＋再送＋互換フィールド）
+  // Photo upload
   function compressImageToDataUrl(file,maxSize=1024,quality=0.8){
     return new Promise((resolve,reject)=>{
       const img=new Image(), reader=new FileReader();
@@ -750,8 +809,12 @@ document.addEventListener("DOMContentLoaded", () => {
   async function uploadWithRetry(payload,tries=3){
     let err=null;
     for(let i=0;i<tries;i++){
+      log('Upload attempt', i+1, '/', tries);
       const res=await callGasApi("upload_item_image",payload);
-      if(res && res.status==="success" && (res.imageUrl||res.fileId)) return res;
+      if(res && res.status==="success" && (res.imageUrl||res.fileId)) {
+        log('Upload success');
+        return res;
+      }
       err=new Error(res?.message||"アップロードに失敗しました。");
       await new Promise(r=>setTimeout(r,600*(i+1)));
     }
@@ -759,6 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function pickAndUploadPhoto(barcode,onDone){
+    log('pickAndUploadPhoto for barcode:', barcode);
     if(!barcode){ showAlert("対象のバーコードが不明です。"); return; }
     const input=document.createElement("input");
     input.type="file";
@@ -767,18 +831,22 @@ document.addEventListener("DOMContentLoaded", () => {
     input.onchange=async()=>{
       const file=input.files && input.files[0];
       if(!file) return;
+      log('File selected:', file.name, file.size, 'bytes');
       try{
         toggleLoading(true);
         const dataUrl=await compressImageToDataUrl(file,1024,0.8);
+        log('Image compressed');
         const [pfx,base64]=dataUrl.split(",");
         const mime=(pfx.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
         const safeName=(file.name||"photo.jpg").replace(/[^\w.\-]/g,"_");
         const payload={ barcode, imageDataUrl:dataUrl, base64, mimeType:mime, fileName:safeName };
         const res=await uploadWithRetry(payload,3);
         const displayUrl=res.imageUrl||res.fileId||"";
+        log('Final URL:', displayUrl);
         if(typeof onDone==="function") onDone(displayUrl);
         showAlert("画像を登録しました。");
       }catch(e){
+        log('Upload error:', e);
         showAlert("エラー: "+e.message);
       }finally{
         toggleLoading(false);
@@ -811,6 +879,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // listeners
   const setupListeners=()=>{
+    log('Setting up listeners');
+    
     dom.loginId.addEventListener("input",()=>{ if(dom.loginId.value.length===5) handleLogin({loginId:dom.loginId.value}); });
     document.getElementById("other-staff-login-button").addEventListener("click",()=>{
       state.user={role:"その他"}; dom.userName.textContent="その他"; showView("view-home-other-1"); loadDepartments();
@@ -837,7 +907,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("confirm-cancel-button").addEventListener("click",()=>{ dom.modals.confirm.classList.add("hidden"); confirmCb=null; });
 
     document.getElementById("submit-stock-update").addEventListener("click",handleStockUpdate);
+    
+    // 物品一覧のイベント委譲
     document.getElementById("item-list-container").addEventListener("click",handleItemListClick);
+    
     document.getElementById("item-search-input").addEventListener("input",renderItemList);
     document.getElementById("filter-reorder-needed").addEventListener("change",renderItemList);
     document.getElementById("filter-on-order").addEventListener("change",renderItemList);
@@ -847,7 +920,13 @@ document.addEventListener("DOMContentLoaded", () => {
     setupDrumroll(document.getElementById("inventory-actual-stock"));
 
     document.getElementById("order-send-button").addEventListener("click",handleOrderSend);
-    document.getElementById("order-discard-button").addEventListener("click",()=>{ dom.modals.order.classList.add("hidden"); if(state.currentView==="view-inventory-count"){ state.inventoryCount.currentIndex++; displayCurrentInventoryItem(); } });
+    document.getElementById("order-discard-button").addEventListener("click",()=>{ 
+      dom.modals.order.classList.add("hidden"); 
+      if(state.currentView==="view-inventory-count"){ 
+        state.inventoryCount.currentIndex++; 
+        displayCurrentInventoryItem(); 
+      } 
+    });
 
     document.getElementById("order-history-list").addEventListener("click",(e)=>{
       const btn=e.target.closest(".cancel-order-button");
@@ -857,9 +936,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.addEventListener("resize",()=>{ if(state.currentView==="view-inventory-count") sizeInventoryView(); });
     document.getElementById("submit-new-item").addEventListener("click",handleNewItemRegistration);
+    
+    log('Listeners setup complete');
   };
 
-  const init=()=>{ setupListeners(); showView("view-login"); };
+  const init=()=>{ 
+    log('App initializing...'); 
+    setupListeners(); 
+    showView("view-login"); 
+    log('App ready');
+  };
   init();
 });
 </script>
