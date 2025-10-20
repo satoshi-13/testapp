@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>在庫管理アプリ</title>
+  <title>在庫管理アプリ v5</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,16 +16,13 @@
     .shake-error{animation:shake .82s cubic-bezier(.36,.07,.19,.97) both}
     input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0 }
     input[type="number"]{ -moz-appearance:textfield }
-    /* 画像（正方形） */
     .square-img{ width:100%; max-width:480px; aspect-ratio:1/1; overflow:hidden; border-radius:.75rem; background:#f3f4f6; margin:0 auto }
     .square-img>img{ width:100%; height:100%; object-fit:cover; display:block }
     .blur-up{ filter:blur(12px); transition:filter .28s ease }
     .blur-up.loaded{ filter:blur(0) }
-    /* モーダルZ順 */
     #order-preview-modal{z-index:50}
     #loading-overlay{z-index:70}
     #alert-modal,#confirm-modal{z-index:80}
-    /* 棚卸し1画面化 */
     .inventory-fit{ display:flex; flex-direction:column; gap:.5rem }
     .inventory-grid{ display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:start }
     .square-btn{ width:2.5rem; height:2.5rem }
@@ -40,7 +37,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
         <span class="text-lg font-bold">ホーム</span>
       </button>
-      <span id="header-app-title" class="hidden text-lg font-bold">物品管理アプリ</span>
+      <span id="header-app-title" class="hidden text-lg font-bold">物品管理アプリ v5</span>
     </div>
     <div class="text-right">
       <p id="user-name" class="text-sm"></p>
@@ -51,7 +48,7 @@
   <main id="main-root" class="p-4 md:p-6">
     <!-- Login -->
     <div id="view-login" class="view">
-      <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">在庫管理</h2>
+      <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">在庫管理 v5</h2>
       <div class="space-y-6">
         <div class="p-4 border rounded-lg">
           <h3 class="font-bold mb-2">管理者 / 使用者の方</h3>
@@ -102,7 +99,7 @@
     <!-- Quantity -->
     <div id="view-quantity" class="view">
       <h2 id="quantity-title" class="text-xl font-bold text-center mb-4"></h2>
-      <p id="final-code-display" class="text-center p-2 bg-gray-100 rounded-md mb-2 break-all"></p>
+      <p id="final-code-display" class="text-center p-2 bg-gray-100 rounded-md mb-2 text-sm text-gray-600"></p>
       <p id="item-name-display-quantity" class="text-center text-lg font-bold mb-4 text-gray-800 h-7"></p>
       <label for="quantity-input" class="font-bold">数量を入力してください:</label>
       <input type="number" id="quantity-input" class="w-full p-4 border-2 rounded-lg text-3xl text-center mt-2" inputmode="numeric" />
@@ -114,8 +111,6 @@
     <div id="view-new-item" class="view">
       <h2 class="text-xl font-bold mb-4">新規物品登録</h2>
       <div class="space-y-3">
-        <input type="text" id="new-qr-id" placeholder="社内QRコードID (任意)" class="w-full p-3 border rounded-md" />
-        <input type="text" id="new-barcode" placeholder="製品バーコード *" class="w-full p-3 border rounded-md" />
         <input type="text" id="new-item-name" placeholder="物品名 *" class="w-full p-3 border rounded-md" />
         <input type="text" id="new-model" placeholder="型番/規格" class="w-full p-3 border rounded-md" />
         <input type="number" id="new-stock" placeholder="初期在庫数 *" class="w-full p-3 border rounded-md" />
@@ -181,9 +176,6 @@
             <button id="inventory-confirm-button" class="mt-1 w-full bg-green-600 text-white rounded-md font-bold flex items-center justify-center py-2">確定</button>
           </div>
         </div>
-        <p id="inventory-expected-line" class="hidden text-sm text-gray-600 mt-1">
-          帳簿上の在庫数: <span id="inventory-expected-stock" class="font-bold text-blue-600"></span>
-        </p>
       </div>
     </div>
   </main>
@@ -244,18 +236,25 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const APP_VERSION = "2025.10.20.r3"; // cache buster
+  const APP_VERSION = "2025.10.20.r5";
+  console.log('=== 在庫管理アプリ v5 起動 ===');
+  console.log('Version:', APP_VERSION);
+  
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("v") !== APP_VERSION) {
+  const urlVersion = urlParams.get("v");
+  
+  if (urlVersion && urlVersion !== APP_VERSION) {
+    console.log('Version mismatch. Reloading...', 'URL:', urlVersion, 'APP:', APP_VERSION);
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.set("v", APP_VERSION);
+    newUrl.searchParams.set("t", Date.now());
     window.location.replace(newUrl.href);
     return;
   }
 
   // ===== Config =====
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzl161IJMLia3_SDhVTho6hyCjaWITRnrmGFd50NY40XPFh8ez57w1ZlJLUlAoYVrY/exec";
-  const DEBUG = true; // デバッグモード
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzI96AMrNvdxhMP5RFaRUjl_b8naeIXvtjTQITyAxDy6EXLao32LlRPNTeIzPckNJPP/exec";
+  const DEBUG = true;
 
   // ===== State =====
   const state = {
@@ -299,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const showView = (id, isBack=false)=>{
-    log('showView:', id, 'isBack:', isBack);
+    log('showView:', id);
     dom.views.forEach(v=>v.style.display="none");
     const el = document.getElementById(id);
     if(el){
@@ -354,7 +353,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const fallback = fileId ? `${GAS_WEB_APP_URL}?action=image64&id=${fileId}` : null;
 
     img.onerror = ()=>{
-      log('Image load error, trying fallback');
+      log('Image error, trying fallback');
       if (fallback) {
         img.onerror = null;
         img.src = fallback;
@@ -378,13 +377,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // API
   const callGasApi = async(action,payload={})=>{
-    log('callGasApi:', action, payload);
+    log('API call:', action, payload);
     toggleLoading(true);
     try{
       const req={action,payload};
-      const noAuth=["login","get_departments","get_supplier_emails","get_item_name","get_item_details"];
+      const noAuth=["login","get_departments","get_supplier_emails"];
       if(!noAuth.includes(action)){
-        if(!state.user) throw new Error("認証情報がありません。再ログインしてください。");
+        if(!state.user) throw new Error("認証が必要です。");
         req.payload.auth={email:state.user.email};
       }
       log('Request:', req);
@@ -423,7 +422,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(()=>{ dom.loginId.classList.remove("shake-error"); dom.loginId.value=""; },820);
     }
   };
-  const handleLogout=()=>{ state.user=null; state.historyStack=[]; dom.loginId.value=""; loadDepartments(); showView("view-login"); };
+  const handleLogout=()=>{ state.user=null; state.historyStack=[]; dom.loginId.value=""; showView("view-login"); };
 
   // Masters
   const loadDepartments=async()=>{
@@ -457,12 +456,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Item list
   const handleShowItemList=async()=>{
-    log('handleShowItemList called');
+    log('Showing item list');
     const result=await callGasApi("get_item_list");
-    log('get_item_list result:', result);
+    log('Items loaded:', result);
     if(result && result.data){
       state.itemList=result.data;
-      log('Loaded', state.itemList.length, 'items');
+      log('Total items:', state.itemList.length);
       renderItemList();
       showView("view-item-list");
     } else {
@@ -471,7 +470,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const renderItemList=()=>{
-    log('renderItemList called');
+    log('renderItemList');
     const container=document.getElementById("item-list-container");
     const q=(document.getElementById("item-search-input").value||"").toLowerCase();
     const onlyReorder=document.getElementById("filter-reorder-needed").checked;
@@ -482,7 +481,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(onlyReorder) items=items.filter(i=>Number(i.stock)<Number(i.reorderPoint));
     if(onlyOnOrder) items=items.filter(i=>Number(i.orderedQuantity)>0);
 
-    log('Filtered items:', items.length);
+    log('Filtered:', items.length);
 
     if(!items.length){
       container.innerHTML = `<p class="text-center text-gray-500">該当する物品はありません。</p>`;
@@ -527,7 +526,6 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `).join("");
 
-    // 画像の段階的読み込み
     document.querySelectorAll("#item-list-container .item-image").forEach(img=>{
       const card = img.closest('.item-card');
       const url = card.dataset.imageUrl;
@@ -539,7 +537,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const card=e.target.closest(".item-card");
     if(!card) return;
 
-    log('Item card clicked:', card.dataset);
+    log('Card clicked:', card.dataset);
 
     const itemId = card.dataset.itemId;
     if(!itemId){ 
@@ -548,7 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if(e.target.classList.contains("inflow-button")){
-      log('Inflow button clicked');
+      log('Inflow');
       state.stockUpdate={ action:"入庫", itemId:itemId, itemName:card.dataset.itemName||"" };
       document.getElementById("final-code-display").textContent=`ID: ${itemId}`;
       document.getElementById("item-name-display-quantity").textContent=state.stockUpdate.itemName||"";
@@ -557,7 +555,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showView("view-quantity");
     }
     else if(e.target.classList.contains("outflow-button")){
-      log('Outflow button clicked');
+      log('Outflow');
       state.stockUpdate={ action:"出庫", itemId:itemId, itemName:card.dataset.itemName||"" };
       document.getElementById("final-code-display").textContent=`ID: ${itemId}`;
       document.getElementById("item-name-display-quantity").textContent=state.stockUpdate.itemName||"";
@@ -566,9 +564,9 @@ document.addEventListener("DOMContentLoaded", () => {
       showView("view-quantity");
     }
     else if(e.target.classList.contains("photo-button")){
-      log('Photo button clicked');
+      log('Photo');
       pickAndUploadPhoto(itemId,(newUrl)=>{
-        log('Photo uploaded, new URL:', newUrl);
+        log('Uploaded:', newUrl);
         const img=card.querySelector(".item-image");
         if(img) setProgressiveImage(img,newUrl);
         const item=state.itemList.find(i=>i.itemId===itemId);
@@ -580,19 +578,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Stock update
   const handleStockUpdate=async()=>{
-    log('handleStockUpdate called');
+    log('Stock update');
     const qty=parseInt(document.getElementById("quantity-input").value,10);
     if(!qty || qty<=0){ showAlert("正しい数量を入力してください。"); return; }
 
     const payload={
-      qrId:state.stockUpdate.qrId,
+      itemId:state.stockUpdate.itemId,
       type:state.stockUpdate.action,
       quantity:qty,
       department:state.otherUserInfo.department,
       phs:state.otherUserInfo.phs
     };
 
-    log('Stock update payload:', payload);
+    log('Payload:', payload);
 
     const result=await callGasApi("stock_update",payload);
     if(!result) return;
@@ -623,13 +621,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const parseQuantityFromBody=(t)=>{ const m=String(t||"").match(/数量[：:\s]*([0-9]+)/); return m?parseInt(m[1],10):null; };
 
   const handleOrderSend=async()=>{
-    log('handleOrderSend called');
+    log('Sending order');
     const to=document.getElementById("preview-to-input").value.trim();
     const subject=document.getElementById("preview-subject-input").value.trim();
     const body=document.getElementById("preview-body-input").value.trim();
-    if(!to||!subject||!body){ showAlert("宛先・件名・本文は必須です。"); return; }
+    if(!to||!subject||!body){ showAlert("必須項目を入力してください。"); return; }
     const q=parseQuantityFromBody(body);
-    if(!q||q<=0){ showAlert("本文の『数量』を正しい数値にしてください。"); return; }
+    if(!q||q<=0){ showAlert("本文の数量を確認してください。"); return; }
 
     const payload={ to,subject,body,historyId:state.orderContext.historyId,quantity:q };
     const result=await callGasApi("send_order",payload);
@@ -639,17 +637,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if(state.currentView==="view-inventory-count"){
       state.inventoryCount.currentIndex++;
       displayCurrentInventoryItem();
-    } else if(state.currentView==="view-item-list"){
-      showAlert("発注メールを送信しました。");
-      handleShowItemList();
     } else {
+      showAlert("発注メールを送信しました。");
       goHome();
     }
   };
 
   // Order history
   const handleGetOrderHistory=async()=>{
-    log('handleGetOrderHistory called');
+    log('Getting order history');
     const result=await callGasApi("get_order_history",{});
     if(!result||!result.data) return;
     const list=document.getElementById("order-history-list");
@@ -660,8 +656,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="border rounded-md p-3">
           <div class="flex justify-between items-center">
             <div>
-              <p class="font-semibold">${r.itemName||"不明な物品"}</p>
-              <p class="text-xs text-gray-500">${r.orderDate} / 数量: ${r.quantity} / ステータス: ${r.status}</p>
+              <p class="font-semibold">${r.itemName||""}</p>
+              <p class="text-xs text-gray-500">${r.orderDate} / 数量: ${r.quantity} / ${r.status}</p>
             </div>
             ${r.status==="注文済み"
               ? `<button class="cancel-order-button bg-blue-500 text-white px-3 py-1 rounded text-sm" data-mail-id="${r.mailId}" data-history-id="${r.historyId}">キャンセル</button>`
@@ -678,7 +674,7 @@ document.addEventListener("DOMContentLoaded", () => {
       hideAllModals();
       const result=await callGasApi("cancel_order",{mailId,historyId});
       if(result && result.status==="success"){
-        showAlert("キャンセルメールを送信しました。");
+        showAlert("キャンセルしました。");
         handleGetOrderHistory();
       }
     });
@@ -686,14 +682,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Inventory
   const startInventoryCount=async()=>{
-    log('startInventoryCount called');
+    log('Starting inventory');
     const result=await callGasApi("get_item_list");
     if(result && result.data){
       state.inventoryCount.items=result.data;
       state.inventoryCount.currentIndex=0;
-      state.inventoryCount.currentItemCode=null;
-      state.inventoryCount.tempOrderContext=null;
-      log('Starting inventory with', state.inventoryCount.items.length, 'items');
+      state.inventoryCount.currentItemId=null;
+      log('Items:', state.inventoryCount.items.length);
       displayCurrentInventoryItem();
       showView("view-inventory-count");
     } else {
@@ -703,7 +698,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const displayCurrentInventoryItem=()=>{
     const {items,currentIndex}=state.inventoryCount;
-    log('displayCurrentInventoryItem:', currentIndex, '/', items.length);
+    log('Inventory item:', currentIndex, '/', items.length);
     
     if(currentIndex>=items.length){
       showDoneAnd("棚卸し完了","全ての物品の確認が終わりました。", goHome);
@@ -711,21 +706,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     const item=items[currentIndex];
-    log('Current item:', item);
+    log('Item:', item);
     
-    // コードの取得（優先順位: barcode > qrId）
-    const code = item.barcode || item.qrId || null;
-    
-    if(!code){
-      log('Item has no code, skipping to next');
-      showAlert(`「${item.itemName}」にはコードが登録されていません。スキップします。`);
+    const itemId = item.itemId;
+    if(!itemId){
+      log('No ID, skipping');
       state.inventoryCount.currentIndex++;
       displayCurrentInventoryItem();
       return;
     }
     
-    // 現在のアイテムのコードを保存
-    state.inventoryCount.currentItemCode = code;
+    state.inventoryCount.currentItemId = itemId;
     
     document.getElementById("inventory-count-progress").textContent = `${currentIndex+1} / ${items.length}`;
     document.getElementById("inventory-item-name").textContent=item.itemName||"";
@@ -739,34 +730,34 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const handleInventoryConfirm=async()=>{
-    log('handleInventoryConfirm called');
+    log('Inventory confirm');
     const {items,currentIndex}=state.inventoryCount;
     if(currentIndex>=items.length) return;
     
     const actual=parseInt(document.getElementById("inventory-actual-stock").value,10);
     if(Number.isNaN(actual)||actual<0){ showAlert("有効な在庫数を入力してください。"); return; }
 
-    const code = state.inventoryCount.currentItemCode;
-    if(!code){
-      showAlert("コードが見つかりません。");
+    const itemId = state.inventoryCount.currentItemId;
+    if(!itemId){
+      showAlert("物品IDがありません。");
       return;
     }
 
     const payload={ 
-      qrId: code, 
+      itemId: itemId, 
       type:"棚卸修正", 
       quantity:actual, 
       isCorrection:true 
     };
     
-    log('Inventory confirm payload:', payload);
+    log('Payload:', payload);
 
     const result=await callGasApi("stock_update",payload);
     if(!result) return;
 
     if(result.status==="success"){
       if(result.orderRequired){
-        log('Order required from inventory');
+        log('Order required');
         state.orderContext.historyId=result.historyId;
         const {to,subject,body,price}=result.mailPreview;
         state.orderContext.unitPrice=price||0;
@@ -784,10 +775,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // New item
   const handleNewItemRegistration=async()=>{
-    log('handleNewItemRegistration called');
+    log('New item registration');
     const payload={
-      qrId:document.getElementById("new-qr-id").value.trim(),
-      barcode:document.getElementById("new-barcode").value.trim(),
       itemName:document.getElementById("new-item-name").value.trim(),
       model:document.getElementById("new-model").value.trim(),
       stock:Number(document.getElementById("new-stock").value),
@@ -795,8 +784,8 @@ document.addEventListener("DOMContentLoaded", () => {
       price:Number(document.getElementById("new-price").value),
       supplierEmail:document.getElementById("new-supplier-email").value.trim()
     };
-    if(!payload.barcode || !payload.itemName || !payload.stock || !payload.reorderPoint || !payload.price || !payload.supplierEmail){
-      showAlert("必須項目（*）を入力してください。");
+    if(!payload.itemName || !payload.stock || !payload.reorderPoint || !payload.price || !payload.supplierEmail){
+      showAlert("必須項目を入力してください。");
       return;
     }
     const result=await callGasApi("item_register",payload);
@@ -820,10 +809,10 @@ document.addEventListener("DOMContentLoaded", () => {
           const ctx=canvas.getContext("2d"); ctx.drawImage(img,0,0,width,height);
           resolve(canvas.toDataURL("image/jpeg",quality));
         };
-        img.onerror=()=>reject(new Error("画像の読み込みに失敗しました。"));
+        img.onerror=()=>reject(new Error("画像読込失敗"));
         img.src=reader.result;
       };
-      reader.onerror=()=>reject(new Error("画像の読込に失敗しました。"));
+      reader.onerror=()=>reject(new Error("ファイル読込失敗"));
       reader.readAsDataURL(file);
     });
   }
@@ -831,21 +820,21 @@ document.addEventListener("DOMContentLoaded", () => {
   async function uploadWithRetry(payload,tries=3){
     let err=null;
     for(let i=0;i<tries;i++){
-      log('Upload attempt', i+1, '/', tries);
+      log('Upload try', i+1);
       const res=await callGasApi("upload_item_image",payload);
       if(res && res.status==="success" && (res.imageUrl||res.fileId)) {
         log('Upload success');
         return res;
       }
-      err=new Error(res?.message||"アップロードに失敗しました。");
+      err=new Error(res?.message||"アップロード失敗");
       await new Promise(r=>setTimeout(r,600*(i+1)));
     }
-    throw err||new Error("アップロードに失敗しました。");
+    throw err;
   }
 
-  function pickAndUploadPhoto(barcode,onDone){
-    log('pickAndUploadPhoto for barcode:', barcode);
-    if(!barcode){ showAlert("対象のバーコードが不明です。"); return; }
+  function pickAndUploadPhoto(itemId,onDone){
+    log('Pick photo for:', itemId);
+    if(!itemId){ showAlert("物品IDが不明です。"); return; }
     const input=document.createElement("input");
     input.type="file";
     input.accept="image/*";
@@ -853,22 +842,22 @@ document.addEventListener("DOMContentLoaded", () => {
     input.onchange=async()=>{
       const file=input.files && input.files[0];
       if(!file) return;
-      log('File selected:', file.name, file.size, 'bytes');
+      log('File:', file.name, file.size);
       try{
         toggleLoading(true);
         const dataUrl=await compressImageToDataUrl(file,1024,0.8);
-        log('Image compressed');
+        log('Compressed');
         const [pfx,base64]=dataUrl.split(",");
         const mime=(pfx.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
         const safeName=(file.name||"photo.jpg").replace(/[^\w.\-]/g,"_");
-        const payload={ barcode, imageDataUrl:dataUrl, base64, mimeType:mime, fileName:safeName };
+        const payload={ itemId, imageDataUrl:dataUrl, base64, mimeType:mime, fileName:safeName };
         const res=await uploadWithRetry(payload,3);
         const displayUrl=res.imageUrl||res.fileId||"";
-        log('Final URL:', displayUrl);
+        log('URL:', displayUrl);
         if(typeof onDone==="function") onDone(displayUrl);
         showAlert("画像を登録しました。");
       }catch(e){
-        log('Upload error:', e);
+        log('Error:', e);
         showAlert("エラー: "+e.message);
       }finally{
         toggleLoading(false);
@@ -901,7 +890,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // listeners
   const setupListeners=()=>{
-    log('Setting up listeners');
+    log('Setup listeners');
     
     dom.loginId.addEventListener("input",()=>{ if(dom.loginId.value.length===5) handleLogin({loginId:dom.loginId.value}); });
     document.getElementById("other-staff-login-button").addEventListener("click",()=>{
@@ -929,10 +918,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("confirm-cancel-button").addEventListener("click",()=>{ dom.modals.confirm.classList.add("hidden"); confirmCb=null; });
 
     document.getElementById("submit-stock-update").addEventListener("click",handleStockUpdate);
-    
-    // 物品一覧のイベント委譲
     document.getElementById("item-list-container").addEventListener("click",handleItemListClick);
-    
     document.getElementById("item-search-input").addEventListener("input",renderItemList);
     document.getElementById("filter-reorder-needed").addEventListener("change",renderItemList);
     document.getElementById("filter-on-order").addEventListener("change",renderItemList);
@@ -959,14 +945,14 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("resize",()=>{ if(state.currentView==="view-inventory-count") sizeInventoryView(); });
     document.getElementById("submit-new-item").addEventListener("click",handleNewItemRegistration);
     
-    log('Listeners setup complete');
+    log('Listeners ready');
   };
 
   const init=()=>{ 
-    log('App initializing...'); 
+    log('Initializing v5'); 
     setupListeners(); 
     showView("view-login"); 
-    log('App ready');
+    log('Ready');
   };
   init();
 });
