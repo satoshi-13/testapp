@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>在庫管理アプリ v5</title>
+  <title>在庫管理アプリ v5.3</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,7 +37,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
         <span class="text-lg font-bold">ホーム</span>
       </button>
-      <span id="header-app-title" class="hidden text-lg font-bold">物品管理アプリ v5</span>
+      <span id="header-app-title" class="hidden text-lg font-bold">物品管理アプリ v5.3</span>
     </div>
     <div class="text-right">
       <p id="user-name" class="text-sm"></p>
@@ -48,7 +48,7 @@
   <main id="main-root" class="p-4 md:p-6">
     <!-- Login -->
     <div id="view-login" class="view">
-      <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">在庫管理 v5</h2>
+      <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">在庫管理 v5.3</h2>
       <div class="space-y-6">
         <div class="p-4 border rounded-lg">
           <h3 class="font-bold mb-2">管理者 / 使用者の方</h3>
@@ -82,7 +82,8 @@
     </div>
 
     <div id="view-home-other-2" class="view">
-      <h3 class="font-bold text-lg mb-4">PHS番号を入力してください</h3>
+      <h3 class="font-bold text-lg mb-4">お名前とPHS番号を入力してください</h3>
+      <input type="text" id="other-name-input" placeholder="お名前 *" class="w-full p-3 border rounded-md mb-3 focus:ring-2 focus:ring-blue-500" />
       <input type="number" id="phs-input" placeholder="PHS番号" class="w-full p-3 border rounded-md mb-4 focus:ring-2 focus:ring-blue-500" />
       <button id="phs-submit-button" class="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600">次へ</button>
       <button class="back-button mt-4 w-full text-center text-gray-600" data-target="view-home-other-1">戻る</button>
@@ -273,8 +274,8 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const APP_VERSION = "2025.10.20.r5.2";
-  console.log('=== 在庫管理アプリ v5 起動 ===');
+  const APP_VERSION = "2025.10.20.r5.3";
+  console.log('=== 在庫管理アプリ v5.3 起動 ===');
   console.log('Version:', APP_VERSION);
   
   const urlParams = new URLSearchParams(window.location.search);
@@ -290,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== Config =====
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby_znRQ_13mGAqLUdN3CqUsX5zQ0e86ciQufVm3EY4MFozSSiGqgk539yz7qhJG9Z8D/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby3_lqgFRwBSlLKH_t6Gh0U0pahmsM7eUROHHZj5uZAuML5JbhESY7pXeY00XJE5hPu/exec";
   const DEBUG = true;
 
   // ===== State =====
@@ -429,7 +430,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const noAuth=["login","get_departments","get_supplier_emails"];
       if(!noAuth.includes(action)){
         if(!state.user) throw new Error("認証が必要です。");
-        req.payload.auth={email:state.user.email};
+        req.payload.auth={
+          email:state.user.email,
+          name: state.user.name,
+          department: state.user.department,
+          phs: state.user.phs,
+          role: state.user.role
+        };
       }
       log('Request:', req);
       const res=await fetch(GAS_WEB_APP_URL,{
@@ -879,15 +886,16 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const handleInventoryBack = () => {
-  if (state.inventoryCount.currentIndex > 0) {
-    // 前の商品に戻る
-    state.inventoryCount.currentIndex--;
-    displayCurrentInventoryItem();
-  } else {
-    // 最初の商品の場合はメインメニューへ
-    goHome();
-  }
-};
+    log('Inventory back');
+    if (state.inventoryCount.currentIndex > 0) {
+      // 前の商品に戻る
+      state.inventoryCount.currentIndex--;
+      displayCurrentInventoryItem();
+    } else {
+      // 最初の商品の場合はメインメニューへ
+      goHome();
+    }
+  };
 
   // New item
   const handleNewItemRegistration=async()=>{
@@ -1013,9 +1021,25 @@ document.addEventListener("DOMContentLoaded", () => {
       state.user={role:"その他"}; dom.userName.textContent="その他"; showView("view-home-other-1"); loadDepartments();
     });
     document.getElementById("phs-submit-button").addEventListener("click",()=>{
-      const phs=document.getElementById("phs-input").value;
-      if(phs&&phs.trim()!==""){ state.otherUserInfo.phs=phs.trim(); showView("view-home-other-menu"); }
-      else showAlert("PHS番号を入力してください。");
+      const name = document.getElementById("other-name-input").value.trim();
+      const phs = document.getElementById("phs-input").value.trim();
+      
+      if(!name) {
+        showAlert("お名前を入力してください。");
+        return;
+      }
+      
+      // 「その他」の場合もユーザー情報を保存
+      state.user.name = name;
+      state.user.department = state.otherUserInfo.department;
+      state.user.phs = phs || '';
+      state.user.email = `other_${Date.now()}@temp.local`; // 一時的なメールアドレス
+      
+      state.otherUserInfo.phs = phs;
+      
+      dom.userName.textContent = name;
+      
+      showView("view-home-other-menu");
     });
 
     dom.mainMenuBtn.addEventListener("click",goHome);
@@ -1072,7 +1096,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const init=()=>{ 
-    log('Initializing v5.1'); 
+    log('Initializing v5.3'); 
     setupListeners(); 
     showView("view-login"); 
     log('Ready');
