@@ -244,7 +244,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const APP_VERSION = "2025.10.20.r2"; // cache buster
+  const APP_VERSION = "2025.10.20.r3"; // cache buster
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("v") !== APP_VERSION) {
     const newUrl = new URL(window.location.href);
@@ -254,7 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== Config =====
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw_6Z7CEPPuAgnxnRn4WbvF7llsU0Lig_gireQA-8C65sBImHAzdVtdQLhY0ei2qiHj/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzl161IJMLia3_SDhVTho6hyCjaWITRnrmGFd50NY40XPFh8ez57w1ZlJLUlAoYVrY/exec";
   const DEBUG = true; // デバッグモード
 
   // ===== State =====
@@ -263,10 +263,10 @@ document.addEventListener("DOMContentLoaded", () => {
     currentView:null,
     historyStack:[],
     itemList:[],
-    stockUpdate:{ action:null, qrId:null, itemName:null },
+    stockUpdate:{ action:null, itemId:null, itemName:null },
     otherUserInfo:{ department:null, phs:null },
     orderContext:{ historyId:null, unitPrice:0 },
-    inventoryCount:{ items:[], currentIndex:0, tempOrderContext:null }
+    inventoryCount:{ items:[], currentIndex:0, currentItemId:null, tempOrderContext:null }
   };
 
   // ===== DOM =====
@@ -491,14 +491,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     container.innerHTML = items.map(item => `
       <div class="item-card p-3 border rounded-lg shadow-sm"
-           data-barcode="${item.barcode||""}"
-           data-qr-id="${item.qrId||""}"
+           data-item-id="${item.itemId||""}"
            data-item-name="${item.itemName||""}"
            data-image-url="${item.imageUrl||""}">
         <div class="flex items-start justify-between">
           <div>
             <h3 class="font-bold text-base leading-tight">${item.itemName||""}</h3>
             <p class="text-xs text-gray-500">用途: ${item.useFor||"—"}</p>
+            <p class="text-xs text-gray-400">ID: ${item.itemId||"—"}</p>
           </div>
           <div class="w-16 h-16 overflow-hidden rounded ml-3 bg-gray-100">
             ${item.imageUrl
@@ -541,12 +541,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     log('Item card clicked:', card.dataset);
 
+    const itemId = card.dataset.itemId;
+    if(!itemId){ 
+      showAlert('物品IDが見つかりません。'); 
+      return; 
+    }
+
     if(e.target.classList.contains("inflow-button")){
       log('Inflow button clicked');
-      const code=card.dataset.barcode || card.dataset.qrId;
-      if(!code){ showAlert('コードが見つかりません'); return; }
-      state.stockUpdate={ action:"入庫", qrId:code, itemName:card.dataset.itemName||"" };
-      document.getElementById("final-code-display").textContent=code||"";
+      state.stockUpdate={ action:"入庫", itemId:itemId, itemName:card.dataset.itemName||"" };
+      document.getElementById("final-code-display").textContent=`ID: ${itemId}`;
       document.getElementById("item-name-display-quantity").textContent=state.stockUpdate.itemName||"";
       document.getElementById("quantity-title").textContent="入庫";
       document.getElementById("quantity-input").value="";
@@ -554,10 +558,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if(e.target.classList.contains("outflow-button")){
       log('Outflow button clicked');
-      const code=card.dataset.barcode || card.dataset.qrId;
-      if(!code){ showAlert('コードが見つかりません'); return; }
-      state.stockUpdate={ action:"出庫", qrId:code, itemName:card.dataset.itemName||"" };
-      document.getElementById("final-code-display").textContent=code||"";
+      state.stockUpdate={ action:"出庫", itemId:itemId, itemName:card.dataset.itemName||"" };
+      document.getElementById("final-code-display").textContent=`ID: ${itemId}`;
       document.getElementById("item-name-display-quantity").textContent=state.stockUpdate.itemName||"";
       document.getElementById("quantity-title").textContent="出庫";
       document.getElementById("quantity-input").value="";
@@ -565,13 +567,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if(e.target.classList.contains("photo-button")){
       log('Photo button clicked');
-      const barcode=card.dataset.barcode||card.dataset.qrId;
-      if(!barcode){ showAlert('コードが見つかりません'); return; }
-      pickAndUploadPhoto(barcode,(newUrl)=>{
+      pickAndUploadPhoto(itemId,(newUrl)=>{
         log('Photo uploaded, new URL:', newUrl);
         const img=card.querySelector(".item-image");
         if(img) setProgressiveImage(img,newUrl);
-        const item=state.itemList.find(i=>(i.barcode===card.dataset.barcode) || (i.qrId===card.dataset.qrId));
+        const item=state.itemList.find(i=>i.itemId===itemId);
         if(item) item.imageUrl=newUrl;
         card.dataset.imageUrl = newUrl;
       });
@@ -691,6 +691,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(result && result.data){
       state.inventoryCount.items=result.data;
       state.inventoryCount.currentIndex=0;
+      state.inventoryCount.currentItemCode=null;
       state.inventoryCount.tempOrderContext=null;
       log('Starting inventory with', state.inventoryCount.items.length, 'items');
       displayCurrentInventoryItem();
@@ -708,8 +709,23 @@ document.addEventListener("DOMContentLoaded", () => {
       showDoneAnd("棚卸し完了","全ての物品の確認が終わりました。", goHome);
       return;
     }
+    
     const item=items[currentIndex];
     log('Current item:', item);
+    
+    // コードの取得（優先順位: barcode > qrId）
+    const code = item.barcode || item.qrId || null;
+    
+    if(!code){
+      log('Item has no code, skipping to next');
+      showAlert(`「${item.itemName}」にはコードが登録されていません。スキップします。`);
+      state.inventoryCount.currentIndex++;
+      displayCurrentInventoryItem();
+      return;
+    }
+    
+    // 現在のアイテムのコードを保存
+    state.inventoryCount.currentItemCode = code;
     
     document.getElementById("inventory-count-progress").textContent = `${currentIndex+1} / ${items.length}`;
     document.getElementById("inventory-item-name").textContent=item.itemName||"";
@@ -726,12 +742,18 @@ document.addEventListener("DOMContentLoaded", () => {
     log('handleInventoryConfirm called');
     const {items,currentIndex}=state.inventoryCount;
     if(currentIndex>=items.length) return;
-    const item=items[currentIndex];
+    
     const actual=parseInt(document.getElementById("inventory-actual-stock").value,10);
     if(Number.isNaN(actual)||actual<0){ showAlert("有効な在庫数を入力してください。"); return; }
 
+    const code = state.inventoryCount.currentItemCode;
+    if(!code){
+      showAlert("コードが見つかりません。");
+      return;
+    }
+
     const payload={ 
-      qrId:item.barcode||item.qrId, 
+      qrId: code, 
       type:"棚卸修正", 
       quantity:actual, 
       isCorrection:true 
