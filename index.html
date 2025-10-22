@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>在庫管理アプリ v5.6</title>
+  <title>在庫管理アプリ v5.7</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,7 +37,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
         <span class="text-lg font-bold">ホーム</span>
       </button>
-      <span id="header-app-title" class="hidden text-lg font-bold">物品管理アプリ v5.6</span>
+      <span id="header-app-title" class="hidden text-lg font-bold">物品管理アプリ v5.7</span>
     </div>
     <div class="text-right">
       <p id="user-name" class="text-sm"></p>
@@ -48,7 +48,7 @@
   <main id="main-root" class="p-4 md:p-6">
     <!-- Login -->
     <div id="view-login" class="view">
-      <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">在庫管理 v5.6</h2>
+      <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">在庫管理 v5.7</h2>
       <div class="space-y-6">
         <div class="p-4 border rounded-lg">
           <h3 class="font-bold mb-2">管理者 / 使用者の方</h3>
@@ -293,7 +293,7 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const APP_VERSION = "2025.10.20.r5.3";
-  console.log('=== 在庫管理アプリ v5.6 起動 ===');
+  console.log('=== 在庫管理アプリ v5.7 起動 ===');
   console.log('Version:', APP_VERSION);
   
   const urlParams = new URLSearchParams(window.location.search);
@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== Config =====
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwLSur4vVbGudN4lxx0nxPCF6-6HUlKkOgzXPAtLj5wokdIAdbBa-o43KCUImLn31MZ/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwgC6nEki-2usFhl_szciIMXG6gNfTORx1oj88hyBQq-qGSTYqu49o0lBE-wajBLk84/exec";
   const DEBUG = true;
 
   // ===== State =====
@@ -1153,7 +1153,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const init=()=>{ 
-    log('Initializing v5.6'); 
+    log('Initializing v5.7'); 
     setupListeners(); 
     showView("view-login"); 
     log('Ready');
