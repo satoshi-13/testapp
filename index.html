@@ -134,6 +134,8 @@
         <input type="number" id="new-reorder-point" placeholder="発注点 *" class="w-full p-3 border rounded-md" />
         <input type="number" id="new-price" placeholder="単価（円） *" class="w-full p-3 border rounded-md" />
         <input type="email" id="new-supplier-email" list="supplier-email-list" placeholder="発注先メールアドレス *" class="w-full p-3 border rounded-md" />
+        <input type="number" id="new-par-level" placeholder="発注上限" class="w-full p-3 border rounded-md" />
+        <input type="text" id="new-use-for" placeholder="用途" class="w-full p-3 border rounded-md" />
         <datalist id="supplier-email-list"></datalist>
       </div>
       <button id="submit-new-item" class="w-full bg-blue-500 text-white p-3 rounded-md mt-4 hover:bg-blue-600">登録する</button>
@@ -307,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== Config =====
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwj_ONDzL6r-UFrbXqwIx8_ytt-U0OFMxgpxbsVM9xQr5XGjaYX1VFWvvwSrac_pF1s/exec";
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwLSur4vVbGudN4lxx0nxPCF6-6HUlKkOgzXPAtLj5wokdIAdbBa-o43KCUImLn31MZ/exec";
   const DEBUG = true;
 
   // ===== State =====
@@ -925,7 +927,9 @@ document.addEventListener("DOMContentLoaded", () => {
       reorderPoint:Number(document.getElementById("new-reorder-point").value),
       price:Number(document.getElementById("new-price").value),
       supplierEmail:document.getElementById("new-supplier-email").value.trim(),
-      imageUrl:state.newItemPhotoUrl
+      imageUrl:state.newItemPhotoUrl,
+      parLevel:document.getElementById("new-par-level").value.trim(),
+      useFor:document.getElementById("new-use-for").value.trim(),
     };
     if(!payload.itemName || !payload.stock || !payload.reorderPoint || !payload.price || !payload.supplierEmail){
       showAlert("必須項目を入力してください。");
